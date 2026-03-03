@@ -12,6 +12,7 @@ class RecordingViewModel: ObservableObject {
     @Published var toastMessage: ToastMessage?
     @Published var isExporting: Bool = false
     @Published var isGeneratingNotes: Bool = false
+    @Published var isImprovingTranscript: Bool = false
     @Published var userNotes: String = ""
     @Published var userNotesTitle: String = ""
 
@@ -192,13 +193,14 @@ class RecordingViewModel: ObservableObject {
                         classId: classModel.id,
                         date: recordingDate,
                         duration: result.duration,
-                        audioFileName: audioURL.lastPathComponent,
+                        audioURL: audioURL,
                         transcript: transcript,
                         userNotes: finalUserNotes,
                         intentMarkers: finalIntentMarkers,
                         catchUpSummaries: finalCatchUpSummaries,
                         classModel: classModel,
-                        classViewModel: classViewModel
+                        classViewModel: classViewModel,
+                        skipGeminiUpgrade: true // battery-save already transcribed via on-device pass
                     )
                 } catch {
                     self.errorMessage = "Failed to transcribe recording: \(error.localizedDescription)"
@@ -213,13 +215,14 @@ class RecordingViewModel: ObservableObject {
                         classId: classModel.id,
                         date: recordingDate,
                         duration: result.duration,
-                        audioFileName: audioURL.lastPathComponent,
+                        audioURL: audioURL,
                         transcript: "",
                         userNotes: finalUserNotes,
                         intentMarkers: finalIntentMarkers,
                         catchUpSummaries: finalCatchUpSummaries,
                         classModel: classModel,
-                        classViewModel: classViewModel
+                        classViewModel: classViewModel,
+                        skipGeminiUpgrade: true
                     )
                 }
 
@@ -233,7 +236,7 @@ class RecordingViewModel: ObservableObject {
                 classId: classModel.id,
                 date: recordingDate,
                 duration: result.duration,
-                audioFileName: audioURL.lastPathComponent,
+                audioURL: audioURL,
                 transcript: finalTranscript,
                 userNotes: finalUserNotes,
                 intentMarkers: finalIntentMarkers,
@@ -250,14 +253,16 @@ class RecordingViewModel: ObservableObject {
         classId: UUID,
         date: Date,
         duration: TimeInterval,
-        audioFileName: String,
+        audioURL: URL,
         transcript: String,
         userNotes: String,
         intentMarkers: [IntentMarker],
         catchUpSummaries: [CatchUpSummary],
         classModel: SDClass,
-        classViewModel: ClassViewModel
+        classViewModel: ClassViewModel,
+        skipGeminiUpgrade: Bool = false
     ) {
+        let audioFileName = audioURL.lastPathComponent
         let recording = SDRecording(
             classId: classId,
             date: date,
@@ -281,6 +286,48 @@ class RecordingViewModel: ObservableObject {
             } else {
                 // Export PDF immediately if notes generation is disabled
                 self.exportPDF(for: recording, classModel: classModel, classViewModel: classViewModel)
+            }
+
+            // In the background, upgrade the transcript via Gemini audio transcription
+            // for better punctuation, accuracy, and speaker diarization.
+            // Skipped when battery-save mode already ran an on-device transcription pass.
+            if !skipGeminiUpgrade {
+                self.upgradeTranscriptWithGeminiAudio(for: recording, audioURL: audioURL, classModel: classModel, classViewModel: classViewModel)
+            }
+        }
+    }
+
+    // MARK: - Gemini Audio Transcript Upgrade
+
+    /// After recording and AI notes are saved, silently upgrade the transcript using Gemini's
+    /// native audio understanding — adding punctuation, capitalization, and speaker labels.
+    /// Only runs if the user has a Gemini API key configured.
+    private func upgradeTranscriptWithGeminiAudio(for recording: SDRecording, audioURL: URL, classModel: SDClass?, classViewModel: ClassViewModel?) {
+        // Only run if an API key is configured right now
+        guard let apiKey = KeychainHelper.shared.getGeminiAPIKey(), !apiKey.isEmpty else { return }
+        // Hold the key so the caller verified availability; GeminiService re-reads it at call time.
+        // TOCTOU risk is accepted: if the key is removed in the milliseconds between here and the
+        // upload, GeminiService will throw .noAPIKey and the catch block handles it gracefully.
+        _ = apiKey
+
+        Task { @MainActor in
+            self.isImprovingTranscript = true
+            self.toastMessage = ToastMessage(message: "Improving transcript quality...", icon: "sparkles", type: .info)
+
+            do {
+                let improvedTranscript = try await geminiService.transcribeAudioFile(at: audioURL)
+                // Always reset state before any early return
+                defer { self.isImprovingTranscript = false }
+                guard !improvedTranscript.isEmpty else { return }
+
+                recording.transcriptText = improvedTranscript
+                classViewModel?.updateRecording(recording)
+
+                self.toastMessage = ToastMessage(message: "Transcript upgraded with AI", icon: "sparkles", type: .success)
+            } catch {
+                // Non-fatal: on-device transcript already saved; just log and move on
+                print("GeminiAudio upgrade failed (non-fatal): \(error.localizedDescription)")
+                self.isImprovingTranscript = false
             }
         }
     }

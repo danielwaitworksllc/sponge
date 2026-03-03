@@ -29,13 +29,7 @@ class SpeechAnalyzerService: ObservableObject {
     private var lastResultLength: Int = 0
 
     init() {
-        // SpeechAnalyzer requires 16-bit signed integer PCM format at 16 kHz
-        analyzerFormat = AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: 16000,
-            channels: 1,
-            interleaved: false
-        )
+        // Format will be negotiated dynamically via SpeechAnalyzer.bestAvailableAudioFormat in startTranscribing()
     }
 
     func requestPermission(completion: @escaping (Bool) -> Void) {
@@ -106,20 +100,32 @@ class SpeechAnalyzerService: ObservableObject {
             do {
                 print("SpeechAnalyzer: Starting transcription...")
 
-                // Create transcriber with Voice Memos-level settings using progressive preset
-                transcriber = SpeechTranscriber(
+                // Create transcriber using the progressive preset for continuous live audio ingestion
+                let newTranscriber = SpeechTranscriber(
                     locale: Locale.current,
                     preset: .progressiveTranscription
                 )
-
-                guard let transcriber = transcriber else {
-                    await MainActor.run {
-                        self.error = "Failed to create transcriber"
-                    }
-                    return
-                }
+                transcriber = newTranscriber
 
                 print("SpeechAnalyzer: Transcriber created")
+
+                // Negotiate the best audio format the neural engine expects — avoids format-mismatch crashes
+                if let negotiatedFormat = try? await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [newTranscriber]) {
+                    analyzerFormat = negotiatedFormat
+                    print("SpeechAnalyzer: Negotiated audio format: \(negotiatedFormat)")
+                } else {
+                    // Fallback to known-good format if negotiation fails
+                    let fallback = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: false)
+                    guard fallback != nil else {
+                        await MainActor.run { self.error = "Could not create audio format for transcription." }
+                        return
+                    }
+                    analyzerFormat = fallback
+                    print("SpeechAnalyzer: Using fallback audio format 16kHz PCM Int16")
+                }
+
+                // Reset converter so appendBuffer() picks up the new format
+                audioConverter = nil
 
                 // Create input stream
                 let (inputSequence, inputContinuation) = AsyncStream<AnalyzerInput>.makeStream()
@@ -130,7 +136,7 @@ class SpeechAnalyzerService: ObservableObject {
                 // Create analyzer with input sequence
                 let newAnalyzer = SpeechAnalyzer(
                     inputSequence: inputSequence,
-                    modules: [transcriber]
+                    modules: [newTranscriber]
                 )
                 analyzer = newAnalyzer
 
@@ -141,7 +147,7 @@ class SpeechAnalyzerService: ObservableObject {
                     guard let self = self else { return }
 
                     do {
-                        for try await result in transcriber.results {
+                        for try await result in newTranscriber.results {
                             let newText = String(result.text.characters)
                             await MainActor.run {
                                 // SpeechAnalyzer may reset its internal state periodically

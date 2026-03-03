@@ -462,6 +462,148 @@ class GeminiService {
         return RecallPrompts(questions: questions)
     }
 
+    // MARK: - Audio Transcription (Gemini Files API)
+
+    /// Uploads an M4A lecture recording to the Gemini Files API and returns a high-quality
+    /// transcript with punctuation, capitalization, and paragraph breaks.
+    /// Cost: ~$0.03–$0.08 per lecture hour.
+    func transcribeAudioFile(at fileURL: URL, vocabulary: [String] = []) async throws -> String {
+        guard let apiKey = KeychainHelper.shared.getGeminiAPIKey(), !apiKey.isEmpty else {
+            throw GeminiError.noAPIKey
+        }
+
+        // MARK: Step 1 — Upload file to Files API
+        // Load audio data on a background thread to avoid blocking the cooperative thread pool
+        let audioData = try await Task.detached(priority: .userInitiated) {
+            try Data(contentsOf: fileURL)
+        }.value
+        let mimeType = "audio/m4a"
+        let boundary = "sponge_boundary_\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
+
+        // Build multipart body
+        var body = Data()
+        let metadataJSON = "{\"file\": {\"display_name\": \"\(fileURL.lastPathComponent)\"}}"
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Type: application/json; charset=UTF-8\r\n\r\n".data(using: .utf8)!)
+        body.append(metadataJSON.data(using: .utf8)!)
+        body.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(audioData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+
+        guard let uploadURL = URL(string: "https://generativelanguage.googleapis.com/upload/v1beta/files?key=\(apiKey)") else {
+            throw GeminiError.invalidResponse
+        }
+
+        var uploadRequest = URLRequest(url: uploadURL)
+        uploadRequest.httpMethod = "POST"
+        uploadRequest.setValue("multipart/related; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        uploadRequest.setValue("\(body.count)", forHTTPHeaderField: "Content-Length")
+        uploadRequest.httpBody = body
+
+        print("GeminiAudio: Uploading \(audioData.count / 1024)KB audio file...")
+        let (uploadData, uploadResponse) = try await URLSession.shared.data(for: uploadRequest)
+
+        guard let uploadHTTP = uploadResponse as? HTTPURLResponse, uploadHTTP.statusCode == 200 else {
+            let statusCode = (uploadResponse as? HTTPURLResponse)?.statusCode ?? -1
+            throw GeminiError.apiError("File upload failed with HTTP \(statusCode)")
+        }
+
+        guard let uploadJSON = try? JSONSerialization.jsonObject(with: uploadData) as? [String: Any],
+              let fileDict = uploadJSON["file"] as? [String: Any],
+              let fileURI = fileDict["uri"] as? String else {
+            throw GeminiError.invalidResponse
+        }
+        print("GeminiAudio: File uploaded, URI: \(fileURI)")
+
+        // MARK: Step 2 — Generate transcript from audio file
+
+        let vocabularySection = vocabulary.isEmpty ? "" : """
+
+        Course-specific vocabulary and proper nouns to ensure correct spelling:
+        \(vocabulary.joined(separator: ", "))
+
+        """
+
+        let systemPrompt = """
+        You are a professional academic transcriptionist. Your task is to produce a verbatim, word-for-word transcript of the lecture audio. Follow these strict rules:
+
+        1. Transcribe every spoken word exactly as heard — do not summarize, paraphrase, or omit content.
+        2. Add correct punctuation (periods, commas, question marks) based on the speaker's prosody and natural sentence boundaries.
+        3. Capitalize the first word of each sentence and proper nouns.
+        4. Start a new paragraph whenever the speaker clearly shifts to a new topic or after a notable pause.
+        5. If multiple speakers are detectable, prefix each speaker's lines with "Speaker 1:", "Speaker 2:", etc.
+        6. Do NOT add any commentary, headers, or content that was not spoken.\(vocabularySection)
+        Output only the transcript text with no preamble.
+        """
+
+        let requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": systemPrompt],
+                        ["fileData": ["mimeType": mimeType, "fileUri": fileURI]]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "temperature": 0.0,
+                "maxOutputTokens": 32768
+            ]
+        ]
+
+        guard var urlComponents = URLComponents(string: apiEndpoint) else {
+            throw GeminiError.invalidResponse
+        }
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: apiKey)]
+        guard let generateURL = urlComponents.url else { throw GeminiError.invalidResponse }
+
+        var generateRequest = URLRequest(url: generateURL)
+        generateRequest.httpMethod = "POST"
+        generateRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        generateRequest.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        generateRequest.timeoutInterval = 180 // 3 minutes for long audio
+
+        print("GeminiAudio: Requesting transcript generation...")
+        let (generateData, generateResponse) = try await URLSession.shared.data(for: generateRequest)
+
+        guard let generateHTTP = generateResponse as? HTTPURLResponse, generateHTTP.statusCode == 200 else {
+            let statusCode = (generateResponse as? HTTPURLResponse)?.statusCode ?? -1
+            if let errorJSON = try? JSONSerialization.jsonObject(with: generateData) as? [String: Any],
+               let error = errorJSON["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                throw GeminiError.apiError(message)
+            }
+            throw GeminiError.apiError("Transcript generation failed with HTTP \(statusCode)")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: generateData) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
+              let parts = content["parts"] as? [[String: Any]],
+              let firstPart = parts.first,
+              let text = firstPart["text"] as? String else {
+            throw GeminiError.invalidResponse
+        }
+
+        print("GeminiAudio: Transcript received (\(text.count) chars)")
+
+        // MARK: Step 3 — Delete the uploaded file (cleanup)
+        // fileURI is the full resource name like "files/abc123"; build the REST path using URLComponents
+        var deleteComponents = URLComponents(string: "https://generativelanguage.googleapis.com")
+        deleteComponents?.path = "/v1beta/\(fileURI)"
+        deleteComponents?.queryItems = [URLQueryItem(name: "key", value: apiKey)]
+        if let deleteURL = deleteComponents?.url {
+            var deleteRequest = URLRequest(url: deleteURL)
+            deleteRequest.httpMethod = "DELETE"
+            _ = try? await URLSession.shared.data(for: deleteRequest)
+            print("GeminiAudio: File deleted from Files API")
+        }
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Extracts JSON from a string that may contain markdown code blocks
     private func extractJSON(from text: String) -> String {
         // Check for markdown code block
