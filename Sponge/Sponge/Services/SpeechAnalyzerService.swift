@@ -116,7 +116,7 @@ class SpeechAnalyzerService: ObservableObject {
                 print("SpeechAnalyzer: Transcriber created")
 
                 // Negotiate the best audio format the neural engine expects — avoids format-mismatch crashes
-                if let negotiatedFormat = try? await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [newTranscriber]) {
+                if let negotiatedFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [newTranscriber]) {
                     analyzerFormat = negotiatedFormat
                     print("SpeechAnalyzer: Negotiated audio format: \(negotiatedFormat)")
                 } else {
@@ -262,16 +262,27 @@ class SpeechAnalyzerService: ObservableObject {
                           userInfo: [NSLocalizedDescriptionKey: "Audio file not found at \(fileURL.path)"])
         }
 
-        // Create an isolated transcriber using the standard transcription preset.
-        // This uses a non-streaming evaluation path suitable for pre-recorded files.
+        // .transcription: no volatileResults / fastResults, uses finalized results only.
+        // NOTE: The research indicates .offlineTranscription is the optimal preset for files,
+        // but it does not exist in the current SDK build. Using .transcription as the closest
+        // available equivalent (same flags: no volatile, no fast).
         let offlineTranscriber = SpeechTranscriber(
             locale: Locale.current,
             preset: .transcription
         )
 
-        // Negotiate the correct format for the offline model
+        // Open the audio file early so we can pass its format as a hint to bestAvailableAudioFormat,
+        // giving the framework the best chance to return a compatible format without conversion.
+        let audioFile = try AVAudioFile(forReading: fileURL)
+        let sourceFormat = audioFile.processingFormat
+
+        // bestAvailableAudioFormat is NOT throwing — returns AVAudioFormat? (no try needed).
+        // Pass the source format as 'considering:' so the framework can match it when possible.
         let targetFormat: AVAudioFormat
-        if let negotiated = try? await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [offlineTranscriber]) {
+        if let negotiated = await SpeechAnalyzer.bestAvailableAudioFormat(
+            compatibleWith: [offlineTranscriber],
+            considering: sourceFormat
+        ) {
             targetFormat = negotiated
         } else if let fallback = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: false) {
             targetFormat = fallback
@@ -305,9 +316,8 @@ class SpeechAnalyzerService: ObservableObject {
             return fullText
         }()
 
-        // Read the audio file and feed it into the analyzer
-        let audioFile = try AVAudioFile(forReading: fileURL)
-        let converter = AVAudioConverter(from: audioFile.processingFormat, to: targetFormat)
+        // Feed the audio file into the analyzer (audioFile already opened above)
+        let converter = AVAudioConverter(from: sourceFormat, to: targetFormat)
 
         let readBufferSize: AVAudioFrameCount = 4096
         let readBuffer = AVAudioPCMBuffer(pcmFormat: audioFile.processingFormat, frameCapacity: readBufferSize)!

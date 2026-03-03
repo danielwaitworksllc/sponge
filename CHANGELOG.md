@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-03-03
+Improved offline transcription: pass source audio format as `considering:` hint to `bestAvailableAudioFormat` (reducing unnecessary conversion), removed erroneous `try?` from the non-throwing call. Attempted `.offlineTranscription` preset per research but it does not exist in current SDK; staying on `.transcription` (same flags: no volatile, no fast results).
+
+## 2026-03-03
 Added class schedule feature: students can set days and times for each class in the class editor. When the app opens during a scheduled class window (±15 min), it auto-selects that class and shows a banner. Schedule is stored as a bitmask and minutes-since-midnight in SDClass.
 
 ## 2026-03-03
