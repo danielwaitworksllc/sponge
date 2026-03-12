@@ -10,5 +10,9 @@
 	<string>Sponge can automatically detect your class schedule to help organize recordings.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Sponge needs Screen Recording permission to capture audio from video calls (Zoom, Teams, Meet) in Meeting mode.</string>
+	<key>SUFeedURL</key>
+	<string>https://danielwaitworksllc.github.io/classrecordingmacapp/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>EZwMeXODvwimxW0wzOF792LXp82tv2txRM1nH685pbU=</string>
 </dict>
 </plist>

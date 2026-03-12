@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-03-12 (v1.3 — upcoming)
+Added Sparkle OTA auto-update support: app now checks for updates on launch and shows "Check for Updates…" in the menu. Added appcast.xml hosted on GitHub Pages and a `scripts/release.sh` script to sign and publish new releases with one command.
+
 ## 2026-03-12 (v1.2)
 Added Whisper model download progress banner in RecordingDetailView — users now see a clear "Downloading — first time only (~600 MB)" message instead of a frozen UI. Overhauled onboarding: added microphone permission priming step (step 2), fixed Gemini API key step to auto-save on paste with no separate save button, corrected API key link to aistudio.google.com/app/apikey.
 

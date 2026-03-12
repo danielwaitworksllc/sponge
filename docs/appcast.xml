@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Sponge Updates</title>
+        <link>https://danielwaitworksllc.github.io/classrecordingmacapp/appcast.xml</link>
+        <description>Sponge app update feed</description>
+        <language>en</language>
+
+        <item>
+            <title>Version 1.2</title>
+            <pubDate>Thu, 12 Mar 2026 12:00:00 +0000</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+                <ul>
+                    <li>Whisper download progress indicator</li>
+                    <li>Onboarding improvements: microphone permission step, better API key flow</li>
+                    <li>Coral/cream theme applied consistently across all views</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/danielwaitworksllc/classrecordingmacapp/releases/download/v1.2.0/Sponge-v1.2.zip"
+                sparkle:edSignature="REPLACE_WITH_SIGNATURE_FROM_sign_update_TOOL"
+                length="REPLACE_WITH_ZIP_SIZE_IN_BYTES"
+                type="application/octet-stream"
+            />
+        </item>
+
+    </channel>
+</rss>

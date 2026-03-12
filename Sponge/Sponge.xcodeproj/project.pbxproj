@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8A2B3B8D2F6340AC004A4971 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 8A2B3B8C2F6340AC004A4971 /* Sparkle */; };
 		8A5048D72F33E39500EE01EC /* SharedAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5048D62F33E39500EE01EC /* SharedAudioManager.swift */; };
 		8AB8C5D12F59332900CE4D4F /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 8AB8C5D02F59332900CE4D4F /* WhisperKit */; };
 		A1000001207A0001 /* SpongeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002207A0001 /* SpongeApp.swift */; };
@@ -24,10 +25,8 @@
 		A1000019207A0001 /* ClassEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001A207A0001 /* ClassEditorView.swift */; };
 		A100001B207A0002 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001C207A0002 /* SettingsView.swift */; };
 		A100001D207A0003 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001E207A0003 /* ToastView.swift */; };
-		C1000001207A0001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000002207A0001 /* OnboardingView.swift */; };
 		A1000030207A0004 /* SaveDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000031207A0004 /* SaveDestination.swift */; };
 		A100003A207A0005 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100003B207A0005 /* GeminiService.swift */; };
-		A1000050207A0010 /* WhisperKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000051207A0010 /* WhisperKitService.swift */; };
 		A100003C207A0005 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100003D207A0005 /* KeychainHelper.swift */; };
 		A100003E207A0006 /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100003F207A0006 /* MarkdownParser.swift */; };
 		A1000040207A0007 /* NoteStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000041207A0007 /* NoteStyle.swift */; };
@@ -36,6 +35,7 @@
 		A1000046207A0010 /* SpongeTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000047207A0010 /* SpongeTheme.swift */; };
 		A1000048207A0012 /* MarkdownNotesEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000049207A0012 /* MarkdownNotesEditor.swift */; };
 		A1000050207A0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000048207A0011 /* Assets.xcassets */; };
+		A1000050207A0010 /* WhisperKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000051207A0010 /* WhisperKitService.swift */; };
 		A1CC76F5FA4216 /* SpeechAnalyzerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19A06C48F3241 /* SpeechAnalyzerService.swift */; };
 		B1000001207B0001 /* IntentMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002207B0001 /* IntentMarker.swift */; };
 		B1000003207B0001 /* EnhancedSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004207B0001 /* EnhancedSummary.swift */; };
@@ -44,6 +44,7 @@
 		B1000009207B0001 /* EnhancedSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A207B0001 /* EnhancedSummaryView.swift */; };
 		B100000B207B0001 /* RecallPromptsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000C207B0001 /* RecallPromptsView.swift */; };
 		B100000D207B0001 /* RecordingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000E207B0001 /* RecordingDetailView.swift */; };
+		C1000001207A0001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000002207A0001 /* OnboardingView.swift */; };
 		C1000001207C0001 /* SpongeDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000002207C0001 /* SpongeDataModels.swift */; };
 		C1000003207C0001 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000004207C0001 /* PersistenceService.swift */; };
 		D1000001207D0001 /* SystemAudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000002207D0001 /* SystemAudioCaptureService.swift */; };
@@ -81,11 +82,9 @@
 		A100001C207A0001 /* Sponge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sponge.entitlements; sourceTree = "<group>"; };
 		A100001C207A0002 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A100001E207A0003 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
-		C1000002207A0001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A1000020207A0001 /* Sponge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sponge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000031207A0004 /* SaveDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveDestination.swift; sourceTree = "<group>"; };
 		A100003B207A0005 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiService.swift; sourceTree = "<group>"; };
-		A1000051207A0010 /* WhisperKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperKitService.swift; sourceTree = "<group>"; };
 		A100003D207A0005 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		A100003F207A0006 /* MarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
 		A1000041207A0007 /* NoteStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStyle.swift; sourceTree = "<group>"; };
@@ -94,6 +93,7 @@
 		A1000047207A0010 /* SpongeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpongeTheme.swift; sourceTree = "<group>"; };
 		A1000048207A0011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1000049207A0012 /* MarkdownNotesEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownNotesEditor.swift; sourceTree = "<group>"; };
+		A1000051207A0010 /* WhisperKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperKitService.swift; sourceTree = "<group>"; };
 		A19A06C48F3241 /* SpeechAnalyzerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAnalyzerService.swift; sourceTree = "<group>"; };
 		B1000002207B0001 /* IntentMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentMarker.swift; sourceTree = "<group>"; };
 		B1000004207B0001 /* EnhancedSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedSummary.swift; sourceTree = "<group>"; };
@@ -102,6 +102,7 @@
 		B100000A207B0001 /* EnhancedSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedSummaryView.swift; sourceTree = "<group>"; };
 		B100000C207B0001 /* RecallPromptsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecallPromptsView.swift; sourceTree = "<group>"; };
 		B100000E207B0001 /* RecordingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingDetailView.swift; sourceTree = "<group>"; };
+		C1000002207A0001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		C1000002207C0001 /* SpongeDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpongeDataModels.swift; sourceTree = "<group>"; };
 		C1000004207C0001 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		D1000002207D0001 /* SystemAudioCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCaptureService.swift; sourceTree = "<group>"; };
@@ -117,6 +118,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8AB8C5D12F59332900CE4D4F /* WhisperKit in Frameworks */,
+				8A2B3B8D2F6340AC004A4971 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,6 +331,7 @@
 			mainGroup = A1000021207A0001;
 			packageReferences = (
 				8AB8C5CF2F59332900CE4D4F /* XCRemoteSwiftPackageReference "WhisperKit" */,
+				8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			productRefGroup = A1000023207A0001 /* Products */;
 			projectDirPath = "";
@@ -661,6 +664,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
 		8AB8C5CF2F59332900CE4D4F /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
@@ -672,6 +683,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8A2B3B8C2F6340AC004A4971 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		8AB8C5D02F59332900CE4D4F /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8AB8C5CF2F59332900CE4D4F /* XCRemoteSwiftPackageReference "WhisperKit" */;
