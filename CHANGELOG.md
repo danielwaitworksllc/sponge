@@ -1,6 +1,12 @@
 # Changelog
 
-## 2026-03-12 (v1.3 — upcoming)
+## 2026-03-12
+Browse recordings while recording: active recording now collapses to a compact bar at the top, leaving the recordings list fully navigable. Click "Notes" to expand back to the full transcript + notes view.
+
+## 2026-03-12
+Redesigned Settings into tabbed layout (General, AI Notes, Notifications, About). Added notification preferences — users can enable/disable reminders and configure lead time (5/10/15/30 min). Added About tab with version info and "Check for Updates" button. Replaced hidden ellipsis toolbar menu with two visible buttons. Fixed API key link in Settings.
+
+## 2026-03-12 (v1.3)
 Added Sparkle OTA auto-update support: app now checks for updates on launch and shows "Check for Updates…" in the menu. Added appcast.xml hosted on GitHub Pages and a `scripts/release.sh` script to sign and publish new releases with one command.
 
 ## 2026-03-12 (v1.2)

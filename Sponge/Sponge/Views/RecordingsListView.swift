@@ -2,55 +2,89 @@ import SwiftUI
 
 struct RecordingsListView: View {
     @EnvironmentObject var classViewModel: ClassViewModel
+    @Binding var isCollapsed: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Text("Recordings")
-                    .font(.headline)
-
-                Spacer()
-
-                if let selectedClass = classViewModel.selectedClass {
-                    Text(selectedClass.name)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+            // Collapsible header
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isCollapsed.toggle()
                 }
+            } label: {
+                HStack {
+                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 16)
+
+                    Text("Recordings")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    if let count = recordingCount, count > 0 {
+                        Text("\(count)")
+                            .font(.caption2.weight(.medium))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.1))
+                            .cornerRadius(4)
+                    }
+
+                    Spacer()
+
+                    if let selectedClass = classViewModel.selectedClass {
+                        Text(selectedClass.name)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .buttonStyle(.plain)
             .background(SpongeTheme.cream)
             .overlay(
                 Rectangle()
-                    .fill(SpongeTheme.coral.opacity(0.2))
+                    .fill(Color.gray.opacity(0.2))
                     .frame(height: 1),
                 alignment: .bottom
             )
 
-            // Content
-            if classViewModel.selectedClass == nil {
-                emptyStateView(
-                    icon: "folder",
-                    title: "No Class Selected",
-                    message: "Select a class to view its recordings"
-                )
-            } else if classViewModel.recordingsForSelectedClass().isEmpty {
-                emptyStateView(
-                    icon: "waveform",
-                    title: "No Recordings",
-                    message: "Start recording to create your first transcript"
-                )
-            } else {
-                List {
-                    ForEach(classViewModel.recordingsForSelectedClass()) { recording in
-                        RecordingRowView(recording: recording, classViewModel: classViewModel)
+            // Content — hidden when collapsed
+            if !isCollapsed {
+                if classViewModel.selectedClass == nil {
+                    emptyStateView(
+                        icon: "folder",
+                        title: "No Class Selected",
+                        message: "Select a class to view its recordings"
+                    )
+                } else if classViewModel.recordingsForSelectedClass().isEmpty {
+                    emptyStateView(
+                        icon: "waveform",
+                        title: "No Recordings",
+                        message: "Start recording to create your first transcript"
+                    )
+                } else {
+                    List {
+                        ForEach(classViewModel.recordingsForSelectedClass()) { recording in
+                            RecordingRowView(recording: recording, classViewModel: classViewModel)
+                        }
+                        .onDelete(perform: deleteRecordings)
                     }
-                    .onDelete(perform: deleteRecordings)
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(SpongeTheme.cream)
                 }
-                .listStyle(.plain)
             }
         }
+    }
+
+    private var recordingCount: Int? {
+        guard classViewModel.selectedClass != nil else { return nil }
+        return classViewModel.recordingsForSelectedClass().count
     }
 
     private func emptyStateView(icon: String, title: String, message: String) -> some View {
@@ -491,6 +525,6 @@ struct RecordingEditorView: View {
 }
 
 #Preview {
-    RecordingsListView()
+    RecordingsListView(isCollapsed: .constant(false))
         .environmentObject(ClassViewModel())
 }

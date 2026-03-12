@@ -1,12 +1,85 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 struct SettingsView: View {
     @EnvironmentObject var classViewModel: ClassViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @AppStorage("autoGenerateClassNotes") private var autoGenerateClassNotes = false
+    var updaterController: SPUStandardUpdaterController?
+
+    var body: some View {
+        NavigationStack {
+            TabView {
+                GeneralTab()
+                    .tabItem { Label("General", systemImage: "gearshape") }
+
+                AINotesTab()
+                    .tabItem { Label("AI Notes", systemImage: "brain") }
+
+                NotificationsTab(classes: classViewModel.classes)
+                    .tabItem { Label("Notifications", systemImage: "bell") }
+
+                AboutTab(updaterController: updaterController)
+                    .tabItem { Label("About", systemImage: "info.circle") }
+            }
+            .padding(20)
+            .background(SpongeTheme.coralPale.opacity(0.4))
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+        }
+        .frame(minWidth: 520, minHeight: 420)
+    }
+}
+
+// MARK: - General Tab
+
+private struct GeneralTab: View {
     @AppStorage("realtimeTranscription") private var realtimeTranscription = true
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                SettingsSection(title: "Recording", icon: "waveform") {
+                    VStack(spacing: 16) {
+                        SettingRow(
+                            icon: "mic.fill",
+                            title: "Live Transcription",
+                            description: "Transcribe during recording (uses more battery)"
+                        ) {
+                            Toggle("", isOn: $realtimeTranscription)
+                                .labelsHidden()
+                        }
+
+                        if !realtimeTranscription {
+                            InfoBox(
+                                icon: "battery.100.bolt",
+                                message: "Battery saver enabled. Audio will be transcribed after you finish recording.",
+                                color: .green
+                            )
+                        } else {
+                            InfoBox(
+                                icon: "waveform",
+                                message: "Live transcription enabled. Your audio will be transcribed as you record.",
+                                color: .blue
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - AI Notes Tab
+
+private struct AINotesTab: View {
+    @AppStorage("autoGenerateClassNotes") private var autoGenerateClassNotes = false
     @AppStorage("generateRecallPrompts") private var generateRecallPrompts = true
     @AppStorage("noteStyle") private var noteStyleRaw: String = NoteStyle.detailed.rawValue
     @AppStorage("summaryLength") private var summaryLengthRaw: String = SummaryLength.comprehensive.rawValue
@@ -14,215 +87,270 @@ struct SettingsView: View {
     @State private var showingAPIKeyAlert = false
 
     private var noteStyle: NoteStyle {
-        get { NoteStyle(rawValue: noteStyleRaw) ?? .detailed }
-        set { noteStyleRaw = newValue.rawValue }
+        NoteStyle(rawValue: noteStyleRaw) ?? .detailed
     }
 
     private var summaryLength: SummaryLength {
-        get { SummaryLength(rawValue: summaryLengthRaw) ?? .comprehensive }
-        set { summaryLengthRaw = newValue.rawValue }
+        SummaryLength(rawValue: summaryLengthRaw) ?? .comprehensive
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Recording Section
-                    SettingsSection(title: "Recording", icon: "waveform") {
-                        VStack(spacing: 16) {
-                            SettingRow(
-                                icon: "mic.fill",
-                                title: "Live Transcription",
-                                description: "Transcribe during recording (uses more battery)"
-                            ) {
-                                Toggle("", isOn: $realtimeTranscription)
-                                    .labelsHidden()
-                            }
-
-                            if !realtimeTranscription {
-                                InfoBox(
-                                    icon: "battery.100.bolt",
-                                    message: "Battery saver enabled. Audio will be transcribed after you finish recording.",
-                                    color: .green
-                                )
-                            } else {
-                                InfoBox(
-                                    icon: "waveform",
-                                    message: "Live transcription enabled. Your audio will be transcribed as you record.",
-                                    color: .blue
-                                )
-                            }
-                        }
-                    }
-
-                    // AI Notes Section
-                    SettingsSection(title: "AI Class Notes", icon: "brain") {
-                        VStack(spacing: 16) {
-                            SettingRow(
-                                icon: "wand.and.stars",
-                                title: "Auto-generate Notes",
-                                description: "Create notes from transcripts automatically"
-                            ) {
-                                Toggle("", isOn: $autoGenerateClassNotes)
-                                    .labelsHidden()
-                            }
-
-                            if autoGenerateClassNotes {
-                                Divider()
-
-                                // Recall Prompts Toggle
-                                SettingRow(
-                                    icon: "brain.head.profile",
-                                    title: "Generate Recall Questions",
-                                    description: "Create practice questions for post-lecture review"
-                                ) {
-                                    Toggle("", isOn: $generateRecallPrompts)
-                                        .labelsHidden()
+        ScrollView {
+            VStack(spacing: 24) {
+                // API Key Section (always visible — most important for setup)
+                SettingsSection(title: "Gemini API Key", icon: "key.fill") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if KeychainHelper.shared.getGeminiAPIKey() != nil && geminiAPIKey.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundColor(.green)
+                                Text("API key saved securely")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Button("Replace") {
+                                    geminiAPIKey = " " // trigger edit mode
                                 }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        } else {
+                            HStack(spacing: 8) {
+                                SecureField("Paste your API key", text: $geminiAPIKey)
+                                    .textFieldStyle(.roundedBorder)
 
-                                Divider()
-
-                                // Note Style
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Label("Note Style", systemImage: "doc.text")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.primary)
-
-                                    Picker("Note Style", selection: Binding(
-                                        get: { noteStyle },
-                                        set: { noteStyleRaw = $0.rawValue }
-                                    )) {
-                                        ForEach(NoteStyle.allCases) { style in
-                                            Text(style.rawValue).tag(style)
-                                        }
+                                if !geminiAPIKey.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    Button("Save") {
+                                        saveAPIKey()
                                     }
-                                    .pickerStyle(.menu)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    Text(noteStyle.description)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-
-                                // Summary Length
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Label("Detail Level", systemImage: "slider.horizontal.3")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.primary)
-
-                                    Picker("Summary Length", selection: Binding(
-                                        get: { summaryLength },
-                                        set: { summaryLengthRaw = $0.rawValue }
-                                    )) {
-                                        ForEach(SummaryLength.allCases) { length in
-                                            Text(length.rawValue).tag(length)
-                                        }
-                                    }
-                                    .pickerStyle(.segmented)
-
-                                    Text(summaryLength.description)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Divider()
-
-                                // API Key
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Label("Gemini API Key", systemImage: "key.fill")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.primary)
-
-                                    HStack(spacing: 8) {
-                                        SecureField("Enter your API key", text: $geminiAPIKey)
-                                            .textFieldStyle(.roundedBorder)
-
-                                        if !geminiAPIKey.isEmpty {
-                                            Button("Save") {
-                                                saveGeminiAPIKey()
-                                            }
-                                            .buttonStyle(.borderedProminent)
-                                            .controlSize(.regular)
-                                        }
-                                    }
-
-                                    if geminiAPIKey.isEmpty && KeychainHelper.shared.getGeminiAPIKey() != nil {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "checkmark.seal.fill")
-                                                .foregroundColor(.green)
-                                            Text("API key saved securely")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-
-                                    Link(destination: URL(string: "https://ai.google.dev")!) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "link")
-                                            Text("Get a free API key from Google AI")
-                                            Image(systemName: "arrow.up.right")
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.regular)
                                 }
                             }
                         }
-                    }
 
-                    // Class Folders Section
-                    if !classViewModel.classes.isEmpty {
-                        SettingsSection(title: "Class Folders", icon: "folder") {
-                            VStack(spacing: 12) {
-                                ForEach(classViewModel.classes) { classModel in
-                                    ModernClassRow(classModel: classModel, classViewModel: classViewModel)
+                        Link(destination: URL(string: "https://aistudio.google.com/app/apikey")!) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "link")
+                                Text("Get a free API key from Google AI Studio")
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                }
+
+                // Note Generation Section
+                SettingsSection(title: "Note Generation", icon: "brain") {
+                    VStack(spacing: 16) {
+                        SettingRow(
+                            icon: "wand.and.stars",
+                            title: "Auto-generate Notes",
+                            description: "Create notes from transcripts automatically"
+                        ) {
+                            Toggle("", isOn: $autoGenerateClassNotes)
+                                .labelsHidden()
+                        }
+
+                        if autoGenerateClassNotes {
+                            Divider()
+
+                            SettingRow(
+                                icon: "brain.head.profile",
+                                title: "Generate Recall Questions",
+                                description: "Create practice questions for post-lecture review"
+                            ) {
+                                Toggle("", isOn: $generateRecallPrompts)
+                                    .labelsHidden()
+                            }
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Note Style", systemImage: "doc.text")
+                                    .font(.subheadline.weight(.medium))
+
+                                Picker("Note Style", selection: Binding(
+                                    get: { noteStyle },
+                                    set: { noteStyleRaw = $0.rawValue }
+                                )) {
+                                    ForEach(NoteStyle.allCases) { style in
+                                        Text(style.rawValue).tag(style)
+                                    }
                                 }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text(noteStyle.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Detail Level", systemImage: "slider.horizontal.3")
+                                    .font(.subheadline.weight(.medium))
+
+                                Picker("Summary Length", selection: Binding(
+                                    get: { summaryLength },
+                                    set: { summaryLengthRaw = $0.rawValue }
+                                )) {
+                                    ForEach(SummaryLength.allCases) { length in
+                                        Text(length.rawValue).tag(length)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                Text(summaryLength.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
                 }
-                .padding(20)
-            }
-            .background(SpongeTheme.coralPale.opacity(0.4))
-            .navigationTitle("Settings")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .keyboardShortcut(.defaultAction)
-                }
-            }
-            .onAppear {
-                loadGeminiAPIKey()
-            }
-            .alert("API Key Saved", isPresented: $showingAPIKeyAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Your Gemini API key has been securely saved to the Keychain.")
             }
         }
-        .frame(minWidth: 600, minHeight: 500)
-    }
-
-    // MARK: - Helper Methods
-
-    private func loadGeminiAPIKey() {
-        if KeychainHelper.shared.getGeminiAPIKey() != nil {
-            geminiAPIKey = ""
+        .alert("API Key Saved", isPresented: $showingAPIKeyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your Gemini API key has been securely saved to the Keychain.")
         }
     }
 
-    private func saveGeminiAPIKey() {
-        let trimmedKey = geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedKey.isEmpty {
+    private func saveAPIKey() {
+        let trimmed = geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
             _ = KeychainHelper.shared.deleteGeminiAPIKey()
         } else {
-            _ = KeychainHelper.shared.saveGeminiAPIKey(trimmedKey)
+            _ = KeychainHelper.shared.saveGeminiAPIKey(trimmed)
             showingAPIKeyAlert = true
         }
         geminiAPIKey = ""
+    }
+}
+
+// MARK: - Notifications Tab
+
+private struct NotificationsTab: View {
+    let classes: [SDClass]
+
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage("reminderLeadMinutes") private var reminderLeadMinutes = 5
+
+    private let leadTimeOptions = [5, 10, 15, 30]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                SettingsSection(title: "Class Reminders", icon: "bell.fill") {
+                    VStack(spacing: 16) {
+                        SettingRow(
+                            icon: "bell.badge",
+                            title: "Reminder Notifications",
+                            description: "Get notified before each scheduled class"
+                        ) {
+                            Toggle("", isOn: $notificationsEnabled)
+                                .labelsHidden()
+                                .onChange(of: notificationsEnabled) { _, enabled in
+                                    if enabled {
+                                        NotificationService.shared.requestAuthorization()
+                                        NotificationService.shared.rescheduleAll(for: classes)
+                                    } else {
+                                        NotificationService.shared.removeAll()
+                                    }
+                                }
+                        }
+
+                        if notificationsEnabled {
+                            Divider()
+
+                            HStack {
+                                Label("Remind me", systemImage: "clock")
+                                    .font(.subheadline.weight(.medium))
+
+                                Spacer()
+
+                                Picker("", selection: $reminderLeadMinutes) {
+                                    ForEach(leadTimeOptions, id: \.self) { minutes in
+                                        Text("\(minutes) min before").tag(minutes)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 160)
+                                .onChange(of: reminderLeadMinutes) { _, _ in
+                                    NotificationService.shared.rescheduleAll(for: classes)
+                                }
+                            }
+
+                            let scheduledCount = classes.filter(\.hasSchedule).count
+                            InfoBox(
+                                icon: "calendar.badge.clock",
+                                message: scheduledCount > 0
+                                    ? "\(scheduledCount) class\(scheduledCount == 1 ? "" : "es") with scheduled reminders. Edit schedules in Manage Classes."
+                                    : "No classes have schedules yet. Add a schedule in Manage Classes to get reminders.",
+                                color: scheduledCount > 0 ? .blue : .orange
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - About Tab
+
+private struct AboutTab: View {
+    var updaterController: SPUStandardUpdaterController?
+
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "Version \(version) (build \(build))"
+    }
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            // App icon + name
+            VStack(spacing: 12) {
+                Image(systemName: "waveform.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(SpongeTheme.coral)
+
+                Text("Sponge")
+                    .font(.title.weight(.bold))
+
+                Text(appVersion)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            // Actions
+            VStack(spacing: 10) {
+                if let updater = updaterController {
+                    Button {
+                        updater.checkForUpdates(nil)
+                    } label: {
+                        Label("Check for Updates", systemImage: "arrow.triangle.2.circlepath")
+                            .frame(maxWidth: 220)
+                    }
+                    .buttonStyle(PrimaryButtonStyle(color: SpongeTheme.coral))
+                }
+
+                Link(destination: URL(string: "https://github.com/danielwaitworksllc/classrecordingmacapp")!) {
+                    Label("View on GitHub", systemImage: "link")
+                        .frame(maxWidth: 220)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -317,106 +445,6 @@ struct InfoBox: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(color.opacity(0.1))
         .cornerRadius(8)
-    }
-}
-
-// MARK: - Modern Class Row
-
-struct ModernClassRow: View {
-    let classModel: SDClass
-    @ObservedObject var classViewModel: ClassViewModel
-    @State private var showingClassEditor = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "folder.fill")
-                        .font(.body)
-                        .foregroundColor(.blue)
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(classModel.name)
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(.primary)
-                    Text(classModel.saveDestination.displayName)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                if !classModel.isConfigurationValid {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-
-                Button {
-                    showingClassEditor = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.body)
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(.secondary)
-            }
-
-            // Folder status
-            FolderStatusBadge(
-                type: "Local Folder",
-                icon: "folder.fill",
-                isConfigured: classModel.hasLocalFolder,
-                name: classModel.resolveFolder()?.lastPathComponent ?? "Not configured"
-            )
-        }
-        .padding(14)
-        .background(Color.tertiaryBackground)
-        .cornerRadius(10)
-        .sheet(isPresented: $showingClassEditor) {
-            ClassEditorView(classToEdit: classModel)
-                .environmentObject(classViewModel)
-        }
-    }
-}
-
-// MARK: - Folder Status Badge
-
-struct FolderStatusBadge: View {
-    let type: String
-    let icon: String
-    let isConfigured: Bool
-    let name: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(isConfigured ? .blue : .secondary)
-                .frame(width: 16)
-
-            Text(type)
-                .font(.caption.weight(.medium))
-                .foregroundColor(.secondary)
-
-            Spacer()
-
-            Text(name)
-                .font(.caption)
-                .foregroundColor(isConfigured ? .primary : .orange)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .help(name)
-        }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 10)
-        .background(Color.secondaryBackground.opacity(0.5))
-        .cornerRadius(6)
     }
 }
 

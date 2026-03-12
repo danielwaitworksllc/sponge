@@ -4,7 +4,6 @@ struct RecordingView: View {
     @EnvironmentObject var classViewModel: ClassViewModel
     @ObservedObject var recordingViewModel: RecordingViewModel
     @State private var showingPermissionAlert = false
-    @State private var showingScreenPermissionAlert = false
     @State private var isConfirmingStop = false
     @State private var showFullTranscript = false
     @State private var ringAnimation = false
@@ -24,14 +23,6 @@ struct RecordingView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Please enable microphone and speech recognition permissions in System Settings.")
-        }
-        .alert("Screen Recording Permission Required", isPresented: $showingScreenPermissionAlert) {
-            Button("Open System Settings") {
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Meeting mode captures audio from video calls (Zoom, Teams, Meet). Enable Screen Recording in System Settings → Privacy & Security → Screen Recording, then try again.")
         }
     }
 
@@ -378,14 +369,6 @@ struct RecordingView: View {
             // Record button
             recordButton
 
-            // Mode toggle: Lecture vs Meeting
-            Picker("Recording Mode", selection: $recordingViewModel.isMeetingMode) {
-                Label("Lecture", systemImage: "book.fill").tag(false)
-                Label("Meeting", systemImage: "video.fill").tag(true)
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 220)
-
             // Status/warning text
             statusText
 
@@ -494,10 +477,6 @@ struct RecordingView: View {
             Label("Configure save location in Settings", systemImage: "exclamationmark.triangle")
                 .font(.subheadline)
                 .foregroundColor(.orange)
-        } else if recordingViewModel.isMeetingMode {
-            Label("Mic + system audio (Zoom, Teams, Meet)", systemImage: "video.fill")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
         } else {
             Text("Tap to start recording")
                 .font(.subheadline)
@@ -552,20 +531,7 @@ struct RecordingView: View {
             }
         }
 
-        if recordingViewModel.isMeetingMode {
-            Task {
-                let screenGranted = await SystemAudioCaptureService.checkPermission()
-                await MainActor.run {
-                    if screenGranted {
-                        doStart()
-                    } else {
-                        showingScreenPermissionAlert = true
-                    }
-                }
-            }
-        } else {
-            doStart()
-        }
+        doStart()
     }
 
 }
@@ -594,7 +560,9 @@ struct ExpandingMarkdownNotesEditor: View {
 
             // Notes text editor - fills remaining space
             LiveMarkdownEditor(text: $text)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.secondaryBackground)
         .cornerRadius(10)
         .overlay(
@@ -614,7 +582,7 @@ struct ExpandingMarkdownNotesEditor: View {
             // Editable title
             TextField("Note Title (optional)", text: $noteTitle)
                 .textFieldStyle(.plain)
-                .font(.caption.weight(.medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(.primary)
                 .focused($isTitleFocused)
 
@@ -637,47 +605,78 @@ struct ExpandingMarkdownNotesEditor: View {
 
     private var formattingToolbar: some View {
         HStack(spacing: 4) {
-            // Heading buttons with labels
+            // Heading buttons
             FormatButtonWithLabel(label: "H1", tooltip: "Heading 1") {
                 insertMarkdown(prefix: "# ", suffix: "")
             }
-
             FormatButtonWithLabel(label: "H2", tooltip: "Heading 2") {
                 insertMarkdown(prefix: "## ", suffix: "")
             }
-
             FormatButtonWithLabel(label: "H3", tooltip: "Heading 3") {
                 insertMarkdown(prefix: "### ", suffix: "")
             }
 
-            Divider()
-                .frame(height: 16)
-                .padding(.horizontal, 4)
+            toolbarDivider
 
-            // Text formatting with icons
+            // Text formatting
             FormatButton(icon: "bold", tooltip: "Bold (Cmd+B)") {
                 insertMarkdown(prefix: "**", suffix: "**")
             }
-
             FormatButton(icon: "italic", tooltip: "Italic (Cmd+I)") {
                 insertMarkdown(prefix: "_", suffix: "_")
             }
+            FormatButton(icon: "strikethrough", tooltip: "Strikethrough (Cmd+Shift+X)") {
+                insertMarkdown(prefix: "~~", suffix: "~~")
+            }
+            FormatButton(icon: "underline", tooltip: "Underline (Cmd+U)") {
+                insertMarkdown(prefix: "<u>", suffix: "</u>")
+            }
+            FormatButton(icon: "highlighter", tooltip: "Highlight") {
+                insertMarkdown(prefix: "==", suffix: "==")
+            }
 
-            Divider()
-                .frame(height: 16)
-                .padding(.horizontal, 4)
+            toolbarDivider
 
-            // List buttons
+            // Lists
             FormatButton(icon: "list.bullet", tooltip: "Bullet List") {
                 insertMarkdown(prefix: "- ", suffix: "", isLinePrefix: true)
             }
-
             FormatButton(icon: "list.number", tooltip: "Numbered List") {
                 insertMarkdown(prefix: "1. ", suffix: "", isLinePrefix: true)
             }
+            FormatButton(icon: "checklist", tooltip: "Checklist") {
+                insertMarkdown(prefix: "- [ ] ", suffix: "", isLinePrefix: true)
+            }
+
+            toolbarDivider
+
+            // Block elements
+            FormatButton(icon: "increase.indent", tooltip: "Indent (Tab)") {
+                NotificationCenter.default.post(name: .indentLine, object: nil, userInfo: ["direction": "indent"])
+            }
+            FormatButton(icon: "decrease.indent", tooltip: "Outdent (Shift+Tab)") {
+                NotificationCenter.default.post(name: .indentLine, object: nil, userInfo: ["direction": "outdent"])
+            }
+            FormatButton(icon: "minus", tooltip: "Horizontal Rule") {
+                insertMarkdown(prefix: "\n---\n", suffix: "", isLinePrefix: false)
+            }
+            FormatButton(icon: "text.quote", tooltip: "Block Quote") {
+                insertMarkdown(prefix: "> ", suffix: "", isLinePrefix: true)
+            }
 
             Spacer()
+
+            // Keyboard hints
+            Text("Cmd+B bold · Cmd+I italic")
+                .font(.caption2)
+                .foregroundColor(.secondary.opacity(0.5))
         }
+    }
+
+    private var toolbarDivider: some View {
+        Divider()
+            .frame(height: 16)
+            .padding(.horizontal, 3)
     }
 
     // MARK: - Computed Properties
@@ -765,6 +764,164 @@ struct PulsingModifier: ViewModifier {
                     isPulsing = false
                 }
             }
+    }
+}
+
+// MARK: - Compact Recording Bar
+
+/// A slim bar shown during active recording so the user can browse past recordings.
+/// Tapping "Expand" returns to the full recording view with transcript and notes.
+struct CompactRecordingBar: View {
+    @EnvironmentObject var classViewModel: ClassViewModel
+    @ObservedObject var recordingViewModel: RecordingViewModel
+    var onExpand: () -> Void
+
+    @State private var isConfirmingStop = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Pulsing recording dot
+            Circle()
+                .fill(recordingViewModel.isPaused ? Color.gray : SpongeTheme.coral)
+                .frame(width: 10, height: 10)
+                .modifier(PulsingModifier(isActive: !recordingViewModel.isPaused))
+
+            // Timer
+            Text(recordingViewModel.formattedDuration)
+                .font(.system(size: 16, weight: .medium, design: .monospaced))
+                .foregroundColor(.primary)
+
+            // Class name
+            if let selectedClass = classViewModel.selectedClass {
+                Text(selectedClass.name)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            // Word count
+            Text("\(recordingViewModel.transcribedText.split(separator: " ").count) words")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(4)
+
+            Spacer()
+
+            if isConfirmingStop {
+                // Confirm stop controls
+                HStack(spacing: 6) {
+                    Button {
+                        recordingViewModel.resumeRecording()
+                        withAnimation { isConfirmingStop = false }
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 26, height: 26)
+                            .background(Color.secondary.opacity(0.15))
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        if let selectedClass = classViewModel.selectedClass {
+                            recordingViewModel.stopRecording(classModel: selectedClass, classViewModel: classViewModel)
+                        }
+                        isConfirmingStop = false
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Save")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .frame(height: 26)
+                        .background(SpongeTheme.coral)
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        recordingViewModel.cancelRecording()
+                        isConfirmingStop = false
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.red)
+                            .frame(width: 26, height: 26)
+                            .background(Color.red.opacity(0.15))
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                // Normal controls
+                HStack(spacing: 6) {
+                    // Expand button — go back to full recording view
+                    Button(action: onExpand) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "rectangle.expand.vertical")
+                                .font(.system(size: 11))
+                            Text("Notes")
+                                .font(.caption.weight(.medium))
+                        }
+                        .foregroundColor(SpongeTheme.coral)
+                        .padding(.horizontal, 8)
+                        .frame(height: 26)
+                        .background(SpongeTheme.coral.opacity(0.12))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Expand to see transcript and notes")
+
+                    // Pause/Resume
+                    Button {
+                        if recordingViewModel.isPaused {
+                            recordingViewModel.resumeRecording()
+                        } else {
+                            recordingViewModel.pauseRecording()
+                        }
+                    } label: {
+                        Image(systemName: recordingViewModel.isPaused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 26, height: 26)
+                            .background(SpongeTheme.coral)
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Stop
+                    Button {
+                        if !recordingViewModel.isPaused {
+                            recordingViewModel.pauseRecording()
+                        }
+                        withAnimation { isConfirmingStop = true }
+                    } label: {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 26, height: 26)
+                            .background(Color.red)
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .overlay(
+            Rectangle()
+                .fill(SpongeTheme.coral.opacity(0.3))
+                .frame(height: 2),
+            alignment: .bottom
+        )
     }
 }
 

@@ -19,7 +19,7 @@ struct SpongeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(updaterController: updaterController)
                 .environmentObject(classViewModel)
                 .modelContainer(PersistenceService.shared.modelContainer)
         }

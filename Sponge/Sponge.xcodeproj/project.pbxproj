@@ -131,12 +131,21 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+
 /* Begin PBXGroup section */
+		8A4756DE2F634441000A240A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A1000021207A0001 = {
 			isa = PBXGroup;
 			children = (
 				A1000022207A0001 /* Sponge */,
 				E1000007207E0001 /* SpongeUITests */,
+				8A4756DE2F634441000A240A /* Frameworks */,
 				A1000023207A0001 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -552,7 +561,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/Frameworks",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
@@ -584,7 +594,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/Frameworks",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
@@ -684,6 +695,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		8A2B3B8C2F6340AC004A4971 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		8A4756DF2F634441000A240A /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;

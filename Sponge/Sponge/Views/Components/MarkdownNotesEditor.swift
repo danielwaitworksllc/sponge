@@ -21,24 +21,15 @@ struct MarkdownNotesEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header with title and word count
             headerSection
-
             Divider()
-
-            // Formatting toolbar
             formattingToolbar
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(Color.secondary.opacity(0.03))
-
             Divider()
-
-            // Notes text editor with live markdown rendering
             LiveMarkdownEditor(text: $text)
                 .frame(height: editorHeight)
-
-            // Resize handle
             resizeHandle
         }
         .background(Color.secondaryBackground)
@@ -49,23 +40,17 @@ struct MarkdownNotesEditor: View {
         )
     }
 
-    // MARK: - Header Section
-
     private var headerSection: some View {
         HStack(spacing: 12) {
             Image(systemName: "note.text")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.secondary)
-
-            // Editable title
             TextField("Note Title (optional)", text: $noteTitle)
                 .textFieldStyle(.plain)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.primary)
                 .focused($isTitleFocused)
-
             Spacer()
-
             Text("\(wordCount) words")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -79,69 +64,84 @@ struct MarkdownNotesEditor: View {
         .background(Color.secondary.opacity(0.05))
     }
 
-    // MARK: - Formatting Toolbar
-
     private var formattingToolbar: some View {
-        HStack(spacing: 6) {
-            // Heading buttons with labels
+        HStack(spacing: 4) {
             FormatButtonWithLabel(label: "H1", tooltip: "Heading 1") {
                 insertMarkdown(prefix: "# ", suffix: "")
             }
-
             FormatButtonWithLabel(label: "H2", tooltip: "Heading 2") {
                 insertMarkdown(prefix: "## ", suffix: "")
             }
-
             FormatButtonWithLabel(label: "H3", tooltip: "Heading 3") {
                 insertMarkdown(prefix: "### ", suffix: "")
             }
 
-            Divider()
-                .frame(height: 20)
-                .padding(.horizontal, 4)
+            toolbarDivider
 
-            // Text formatting with icons
             FormatButton(icon: "bold", tooltip: "Bold (Cmd+B)") {
                 insertMarkdown(prefix: "**", suffix: "**")
             }
-
             FormatButton(icon: "italic", tooltip: "Italic (Cmd+I)") {
                 insertMarkdown(prefix: "_", suffix: "_")
             }
+            FormatButton(icon: "strikethrough", tooltip: "Strikethrough (Cmd+Shift+X)") {
+                insertMarkdown(prefix: "~~", suffix: "~~")
+            }
+            FormatButton(icon: "underline", tooltip: "Underline (Cmd+U)") {
+                insertMarkdown(prefix: "<u>", suffix: "</u>")
+            }
+            FormatButton(icon: "highlighter", tooltip: "Highlight") {
+                insertMarkdown(prefix: "==", suffix: "==")
+            }
 
-            Divider()
-                .frame(height: 20)
-                .padding(.horizontal, 4)
+            toolbarDivider
 
-            // List buttons
             FormatButton(icon: "list.bullet", tooltip: "Bullet List") {
                 insertMarkdown(prefix: "- ", suffix: "", isLinePrefix: true)
             }
-
             FormatButton(icon: "list.number", tooltip: "Numbered List") {
                 insertMarkdown(prefix: "1. ", suffix: "", isLinePrefix: true)
+            }
+            FormatButton(icon: "checklist", tooltip: "Checklist") {
+                insertMarkdown(prefix: "- [ ] ", suffix: "", isLinePrefix: true)
+            }
+
+            toolbarDivider
+
+            FormatButton(icon: "increase.indent", tooltip: "Indent (Tab)") {
+                NotificationCenter.default.post(name: .indentLine, object: nil, userInfo: ["direction": "indent"])
+            }
+            FormatButton(icon: "decrease.indent", tooltip: "Outdent (Shift+Tab)") {
+                NotificationCenter.default.post(name: .indentLine, object: nil, userInfo: ["direction": "outdent"])
+            }
+            FormatButton(icon: "minus", tooltip: "Horizontal Rule") {
+                insertMarkdown(prefix: "\n---\n", suffix: "", isLinePrefix: false)
+            }
+            FormatButton(icon: "text.quote", tooltip: "Block Quote") {
+                insertMarkdown(prefix: "> ", suffix: "", isLinePrefix: true)
             }
 
             Spacer()
 
-            // Keyboard hints
-            Text("Cmd+B bold, Cmd+I italic")
+            Text("Cmd+B bold · Cmd+I italic")
                 .font(.caption2)
-                .foregroundColor(.secondary.opacity(0.6))
+                .foregroundColor(.secondary.opacity(0.5))
         }
     }
 
-    // MARK: - Resize Handle
+    private var toolbarDivider: some View {
+        Divider()
+            .frame(height: 16)
+            .padding(.horizontal, 3)
+    }
 
     private var resizeHandle: some View {
         HStack {
             Spacer()
-
             Rectangle()
                 .fill(Color.secondary.opacity(isDragging ? 0.4 : 0.2))
                 .frame(width: 40, height: 4)
                 .cornerRadius(2)
-
             Spacer()
         }
         .frame(height: 16)
@@ -167,25 +167,11 @@ struct MarkdownNotesEditor: View {
         }
     }
 
-    private var placeholderText: some View {
-        Text("Start typing your notes... Use **bold** or _italic_ markdown syntax.")
-            .font(.body)
-            .foregroundColor(.secondary.opacity(0.5))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 20)
-            .allowsHitTesting(false)
-    }
-
-    // MARK: - Computed Properties
-
     private var wordCount: Int {
         text.split(separator: " ").count
     }
 
-    // MARK: - Formatting Actions
-
     private func insertMarkdown(prefix: String, suffix: String, isLinePrefix: Bool = false) {
-        // Post notification to the text editor
         NotificationCenter.default.post(
             name: .insertMarkdown,
             object: nil,
@@ -198,6 +184,7 @@ struct MarkdownNotesEditor: View {
 
 extension Notification.Name {
     static let insertMarkdown = Notification.Name("insertMarkdown")
+    static let indentLine = Notification.Name("indentLine")
 }
 
 // MARK: - Format Button with Label
@@ -248,25 +235,51 @@ struct FormatButton: View {
 class MarkdownTextView: NSTextView {
     var onBold: (() -> Void)?
     var onItalic: (() -> Void)?
-    var onEnterPressed: ((String) -> String?)?  // Returns prefix to insert, or nil
+    var onStrikethrough: (() -> Void)?
+    var onUnderline: (() -> Void)?
+    var onIndent: ((_ outdent: Bool) -> Void)?
+    var onEnterPressed: ((String) -> String?)?
 
     override func keyDown(with event: NSEvent) {
-        // Check for Cmd+B (bold)
-        if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "b" {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        // Cmd+B (bold)
+        if flags == .command && event.charactersIgnoringModifiers == "b" {
             onBold?()
             return
         }
 
-        // Check for Cmd+I (italic)
-        if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "i" {
+        // Cmd+I (italic)
+        if flags == .command && event.charactersIgnoringModifiers == "i" {
             onItalic?()
             return
         }
 
-        // Check for Enter/Return key
-        if event.keyCode == 36 || event.keyCode == 76 { // Return or Enter
+        // Cmd+U (underline)
+        if flags == .command && event.charactersIgnoringModifiers == "u" {
+            onUnderline?()
+            return
+        }
+
+        // Cmd+Shift+X (strikethrough)
+        if flags == [.command, .shift] && event.charactersIgnoringModifiers == "x" {
+            onStrikethrough?()
+            return
+        }
+
+        // Tab key (indent)
+        if event.keyCode == 48 { // Tab
+            if flags.contains(.shift) {
+                onIndent?(true) // outdent
+            } else {
+                onIndent?(false) // indent
+            }
+            return
+        }
+
+        // Enter/Return key
+        if event.keyCode == 36 || event.keyCode == 76 {
             if let currentLine = getCurrentLine(), let prefix = onEnterPressed?(currentLine) {
-                // Insert newline + prefix
                 insertText("\n\(prefix)", replacementRange: selectedRange())
                 return
             }
@@ -279,13 +292,11 @@ class MarkdownTextView: NSTextView {
         let text = string as NSString
         let cursorLocation = selectedRange().location
 
-        // Find start of current line
         var lineStart = cursorLocation
-        while lineStart > 0 && text.character(at: lineStart - 1) != 10 { // newline
+        while lineStart > 0 && text.character(at: lineStart - 1) != 10 {
             lineStart -= 1
         }
 
-        // Find end of current line
         var lineEnd = cursorLocation
         while lineEnd < text.length && text.character(at: lineEnd) != 10 {
             lineEnd += 1
@@ -300,7 +311,6 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     @Binding var text: String
 
     func makeNSView(context: Context) -> NSScrollView {
-        // Create custom text view
         let textView = MarkdownTextView()
         textView.autoresizingMask = [.width, .height]
         textView.delegate = context.coordinator
@@ -313,38 +323,34 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         textView.backgroundColor = .clear
         textView.drawsBackground = false
 
-        // Set up text container for proper wrapping
-        let textContainer = NSTextContainer()
-        textContainer.widthTracksTextView = true
-        textContainer.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-
-        let layoutManager = NSLayoutManager()
-        layoutManager.addTextContainer(textContainer)
-
-        let textStorage = NSTextStorage()
-        textStorage.addLayoutManager(layoutManager)
-
         textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
         textView.isHorizontallyResizable = false
         textView.isVerticallyResizable = true
 
-        // Insets
-        textView.textContainerInset = NSSize(width: 12, height: 12)
+        textView.textContainerInset = NSSize(width: 16, height: 16)
 
         // Set up keyboard handlers
         let coordinator = context.coordinator
         textView.onBold = { [weak coordinator] in
-            coordinator?.toggleBold()
+            coordinator?.toggleWrap(prefix: "**", suffix: "**")
         }
         textView.onItalic = { [weak coordinator] in
-            coordinator?.toggleItalic()
+            coordinator?.toggleWrap(prefix: "_", suffix: "_")
+        }
+        textView.onStrikethrough = { [weak coordinator] in
+            coordinator?.toggleWrap(prefix: "~~", suffix: "~~")
+        }
+        textView.onUnderline = { [weak coordinator] in
+            coordinator?.toggleWrap(prefix: "<u>", suffix: "</u>")
+        }
+        textView.onIndent = { [weak coordinator] outdent in
+            coordinator?.indentCurrentLine(outdent: outdent)
         }
         textView.onEnterPressed = { [weak coordinator] currentLine in
             return coordinator?.getListContinuation(for: currentLine)
         }
 
-        // Create scroll view
         let scrollView = NSScrollView()
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
@@ -353,10 +359,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         scrollView.borderType = .noBorder
         scrollView.drawsBackground = false
 
-        // Store reference for notifications
         context.coordinator.textView = textView
-
-        // Apply initial styling
         context.coordinator.applyMarkdownStyling(to: textView)
 
         return scrollView
@@ -365,14 +368,12 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
 
-        // Only update if text changed externally
         let plainText = context.coordinator.getPlainText(from: textView)
         if plainText != text {
             let selectedRanges = textView.selectedRanges
             textView.string = text
             context.coordinator.applyMarkdownStyling(to: textView)
 
-            // Restore selection if valid
             if let firstRange = selectedRanges.first?.rangeValue,
                firstRange.location <= textView.string.count {
                 textView.setSelectedRange(firstRange)
@@ -388,24 +389,32 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         var parent: LiveMarkdownEditor
         weak var textView: NSTextView?
         private var isUpdating = false
-        private var notificationObserver: Any?
+        private var notificationObservers: [Any] = []
 
         init(_ parent: LiveMarkdownEditor) {
             self.parent = parent
             super.init()
 
-            // Listen for markdown insert notifications
-            notificationObserver = NotificationCenter.default.addObserver(
-                forName: .insertMarkdown,
-                object: nil,
-                queue: .main
-            ) { [weak self] notification in
-                self?.handleInsertMarkdown(notification)
-            }
+            notificationObservers.append(
+                NotificationCenter.default.addObserver(
+                    forName: .insertMarkdown, object: nil, queue: .main
+                ) { [weak self] notification in
+                    self?.handleInsertMarkdown(notification)
+                }
+            )
+
+            notificationObservers.append(
+                NotificationCenter.default.addObserver(
+                    forName: .indentLine, object: nil, queue: .main
+                ) { [weak self] notification in
+                    let direction = notification.userInfo?["direction"] as? String ?? "indent"
+                    self?.indentCurrentLine(outdent: direction == "outdent")
+                }
+            )
         }
 
         deinit {
-            if let observer = notificationObserver {
+            for observer in notificationObservers {
                 NotificationCenter.default.removeObserver(observer)
             }
         }
@@ -421,99 +430,112 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             let text = textView.string as NSString
 
             if isLinePrefix {
-                // Insert at beginning of line
                 var lineStart = selectedRange.location
-                while lineStart > 0 && text.character(at: lineStart - 1) != 10 { // newline
+                while lineStart > 0 && text.character(at: lineStart - 1) != 10 {
                     lineStart -= 1
                 }
 
-                // Check if we need a newline first
                 if lineStart == selectedRange.location && lineStart > 0 {
                     textView.insertText("\n\(prefix)", replacementRange: selectedRange)
                 } else {
                     textView.insertText(prefix, replacementRange: NSRange(location: lineStart, length: 0))
                 }
             } else if selectedRange.length > 0 {
-                // Wrap selected text
                 let selectedText = text.substring(with: selectedRange)
                 let replacement = "\(prefix)\(selectedText)\(suffix)"
                 textView.insertText(replacement, replacementRange: selectedRange)
             } else {
-                // Insert markers at cursor
                 textView.insertText("\(prefix)\(suffix)", replacementRange: selectedRange)
-                // Move cursor between markers
                 let newLocation = selectedRange.location + prefix.count
                 textView.setSelectedRange(NSRange(location: newLocation, length: 0))
             }
         }
 
-        // MARK: - Keyboard Shortcut Handlers
+        // MARK: - Toggle Wrap (for keyboard shortcuts)
 
-        func toggleBold() {
+        func toggleWrap(prefix: String, suffix: String) {
             guard let textView = textView else { return }
             let selectedRange = textView.selectedRange()
             let text = textView.string as NSString
 
             if selectedRange.length > 0 {
-                // Wrap selected text with **
                 let selectedText = text.substring(with: selectedRange)
-                let replacement = "**\(selectedText)**"
-                textView.insertText(replacement, replacementRange: selectedRange)
+                // Check if already wrapped — if so, unwrap
+                if selectedText.hasPrefix(prefix) && selectedText.hasSuffix(suffix) && selectedText.count > prefix.count + suffix.count {
+                    let inner = String(selectedText.dropFirst(prefix.count).dropLast(suffix.count))
+                    textView.insertText(inner, replacementRange: selectedRange)
+                } else {
+                    textView.insertText("\(prefix)\(selectedText)\(suffix)", replacementRange: selectedRange)
+                }
             } else {
-                // Insert ** ** and place cursor in middle
-                textView.insertText("****", replacementRange: selectedRange)
-                textView.setSelectedRange(NSRange(location: selectedRange.location + 2, length: 0))
+                textView.insertText("\(prefix)\(suffix)", replacementRange: selectedRange)
+                textView.setSelectedRange(NSRange(location: selectedRange.location + prefix.count, length: 0))
             }
         }
 
-        func toggleItalic() {
-            guard let textView = textView else { return }
-            let selectedRange = textView.selectedRange()
-            let text = textView.string as NSString
+        // MARK: - Indent / Outdent
 
-            if selectedRange.length > 0 {
-                // Wrap selected text with _
-                let selectedText = text.substring(with: selectedRange)
-                let replacement = "_\(selectedText)_"
-                textView.insertText(replacement, replacementRange: selectedRange)
+        func indentCurrentLine(outdent: Bool) {
+            guard let textView = textView else { return }
+            let text = textView.string as NSString
+            let cursorLocation = textView.selectedRange().location
+
+            var lineStart = cursorLocation
+            while lineStart > 0 && text.character(at: lineStart - 1) != 10 {
+                lineStart -= 1
+            }
+
+            if outdent {
+                // Remove leading tab or 4 spaces
+                let lineText = text.substring(from: lineStart)
+                if lineText.hasPrefix("\t") {
+                    textView.insertText("", replacementRange: NSRange(location: lineStart, length: 1))
+                } else if lineText.hasPrefix("    ") {
+                    textView.insertText("", replacementRange: NSRange(location: lineStart, length: 4))
+                }
             } else {
-                // Insert __ and place cursor in middle
-                textView.insertText("__", replacementRange: selectedRange)
-                textView.setSelectedRange(NSRange(location: selectedRange.location + 1, length: 0))
+                // Insert 4 spaces at line start
+                textView.insertText("    ", replacementRange: NSRange(location: lineStart, length: 0))
             }
         }
 
         func getListContinuation(for line: String) -> String? {
+            // Preserve leading whitespace (indentation)
+            let leadingWhitespace = String(line.prefix(while: { $0 == " " || $0 == "\t" }))
             let trimmedLine = line.trimmingCharacters(in: .whitespaces)
 
-            // Check for bullet points (- or *)
-            if trimmedLine.hasPrefix("- ") {
-                // If line is just "- " (empty bullet), don't continue
-                if trimmedLine == "- " || trimmedLine == "-" {
-                    return nil
-                }
-                return "- "
-            }
-            if trimmedLine.hasPrefix("* ") {
-                if trimmedLine == "* " || trimmedLine == "*" {
-                    return nil
-                }
-                return "* "
+            // Checkbox: - [ ] or - [x]
+            if trimmedLine.hasPrefix("- [ ] ") || trimmedLine.hasPrefix("- [x] ") || trimmedLine.hasPrefix("- [X] ") {
+                let content = String(trimmedLine.dropFirst(6))
+                if content.isEmpty { return nil }
+                return "\(leadingWhitespace)- [ ] "
             }
 
-            // Check for numbered lists
+            // Block quote: >
+            if trimmedLine.hasPrefix("> ") {
+                let content = String(trimmedLine.dropFirst(2))
+                if content.isEmpty { return nil }
+                return "\(leadingWhitespace)> "
+            }
+
+            // Bullet points (- or *)
+            if trimmedLine.hasPrefix("- ") {
+                if trimmedLine == "- " || trimmedLine == "-" { return nil }
+                return "\(leadingWhitespace)- "
+            }
+            if trimmedLine.hasPrefix("* ") {
+                if trimmedLine == "* " || trimmedLine == "*" { return nil }
+                return "\(leadingWhitespace)* "
+            }
+
+            // Numbered lists
             if let match = trimmedLine.range(of: "^(\\d+)\\. ", options: .regularExpression) {
                 let numberStr = String(trimmedLine[trimmedLine.startIndex..<match.upperBound])
                     .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
-
-                // If line is just "1. " (empty numbered item), don't continue
                 let content = String(trimmedLine[match.upperBound...])
-                if content.isEmpty {
-                    return nil
-                }
-
+                if content.isEmpty { return nil }
                 if let number = Int(numberStr) {
-                    return "\(number + 1). "
+                    return "\(leadingWhitespace)\(number + 1). "
                 }
             }
 
@@ -525,13 +547,8 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             guard !isUpdating else { return }
 
             isUpdating = true
-
-            // Update the plain text binding
             parent.text = textView.string
-
-            // Apply markdown styling
             applyMarkdownStyling(to: textView)
-
             isUpdating = false
         }
 
@@ -545,18 +562,14 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             let fullRange = NSRange(location: 0, length: textStorage.length)
             let text = textStorage.string
 
-            // Base attributes
             let baseFont = NSFont.systemFont(ofSize: 14)
             let baseColor = NSColor.labelColor
-
-            // Hidden marker attributes - make markers invisible
             let hiddenFont = NSFont.systemFont(ofSize: 0.1)
             let hiddenColor = NSColor.clear
 
             let baseParagraphStyle = NSMutableParagraphStyle()
             baseParagraphStyle.lineSpacing = 4
 
-            // Reset to base style
             textStorage.beginEditing()
             textStorage.setAttributes([
                 .font: baseFont,
@@ -568,55 +581,94 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             var currentLocation = 0
 
             for line in lines {
-                let lineRange = NSRange(location: currentLocation, length: line.count)
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
 
-                // Check for headings
-                if line.hasPrefix("### ") {
-                    // Apply header font to content only (after marker)
+                // Horizontal rule
+                if trimmed == "---" || trimmed == "***" || trimmed == "___" {
+                    let lineRange = NSRange(location: currentLocation, length: line.count)
+                    textStorage.addAttribute(.foregroundColor, value: NSColor.separatorColor, range: lineRange)
+                    textStorage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: lineRange)
+                }
+                // Headings
+                else if trimmed.hasPrefix("### ") {
                     let headerFont = NSFont.systemFont(ofSize: 15, weight: .semibold)
-                    if line.count > 4 {
-                        let contentRange = NSRange(location: currentLocation + 4, length: line.count - 4)
+                    let markerLen = line.distance(from: line.startIndex, to: line.range(of: "### ")!.upperBound)
+                    if line.count > markerLen {
+                        let contentRange = NSRange(location: currentLocation + markerLen, length: line.count - markerLen)
                         textStorage.addAttribute(.font, value: headerFont, range: contentRange)
                     }
-                    // Hide the ### markers
-                    let markerRange = NSRange(location: currentLocation, length: 4)
+                    let markerRange = NSRange(location: currentLocation, length: markerLen)
                     hideMarker(in: textStorage, range: markerRange, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
-                } else if line.hasPrefix("## ") {
-                    // Apply header font to content only
+                } else if trimmed.hasPrefix("## ") && !trimmed.hasPrefix("### ") {
                     let headerFont = NSFont.systemFont(ofSize: 17, weight: .semibold)
-                    if line.count > 3 {
-                        let contentRange = NSRange(location: currentLocation + 3, length: line.count - 3)
+                    let markerLen = line.distance(from: line.startIndex, to: line.range(of: "## ")!.upperBound)
+                    if line.count > markerLen {
+                        let contentRange = NSRange(location: currentLocation + markerLen, length: line.count - markerLen)
                         textStorage.addAttribute(.font, value: headerFont, range: contentRange)
                     }
-                    // Hide the ## markers
-                    let markerRange = NSRange(location: currentLocation, length: 3)
+                    let markerRange = NSRange(location: currentLocation, length: markerLen)
                     hideMarker(in: textStorage, range: markerRange, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
-                } else if line.hasPrefix("# ") {
-                    // Apply header font to content only
+                } else if trimmed.hasPrefix("# ") && !trimmed.hasPrefix("## ") {
                     let headerFont = NSFont.systemFont(ofSize: 20, weight: .bold)
-                    if line.count > 2 {
-                        let contentRange = NSRange(location: currentLocation + 2, length: line.count - 2)
+                    let markerLen = line.distance(from: line.startIndex, to: line.range(of: "# ")!.upperBound)
+                    if line.count > markerLen {
+                        let contentRange = NSRange(location: currentLocation + markerLen, length: line.count - markerLen)
                         textStorage.addAttribute(.font, value: headerFont, range: contentRange)
                     }
-                    // Hide the # marker
-                    let markerRange = NSRange(location: currentLocation, length: 2)
+                    let markerRange = NSRange(location: currentLocation, length: markerLen)
                     hideMarker(in: textStorage, range: markerRange, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
-                } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
-                    // Replace bullet marker with actual bullet character visually
-                    // Keep marker but style it as a bullet
-                    let markerRange = NSRange(location: currentLocation, length: 1)
-                    textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: markerRange)
-                } else if let match = line.range(of: "^\\d+\\. ", options: .regularExpression) {
-                    // Keep numbered list markers visible but slightly dimmed
-                    let markerLength = line.distance(from: line.startIndex, to: match.upperBound)
-                    let markerRange = NSRange(location: currentLocation, length: markerLength)
-                    textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: markerRange)
+                }
+                // Block quotes
+                else if trimmed.hasPrefix("> ") {
+                    let lineRange = NSRange(location: currentLocation, length: line.count)
+                    textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: lineRange)
+                    let quoteParagraph = NSMutableParagraphStyle()
+                    quoteParagraph.lineSpacing = 4
+                    quoteParagraph.headIndent = 20
+                    quoteParagraph.firstLineHeadIndent = 20
+                    textStorage.addAttribute(.paragraphStyle, value: quoteParagraph, range: lineRange)
+                    // Dim the > marker
+                    if let markerRange = line.range(of: "> ") {
+                        let markerLen = line.distance(from: line.startIndex, to: markerRange.upperBound)
+                        let nsMarkerRange = NSRange(location: currentLocation, length: markerLen)
+                        textStorage.addAttribute(.foregroundColor, value: NSColor.tertiaryLabelColor, range: nsMarkerRange)
+                    }
+                }
+                // Checklist items
+                else if trimmed.hasPrefix("- [ ] ") || trimmed.hasPrefix("- [x] ") || trimmed.hasPrefix("- [X] ") {
+                    if let markerRange = line.range(of: "- \\[[ xX]\\] ", options: .regularExpression) {
+                        let markerLen = line.distance(from: line.startIndex, to: markerRange.upperBound)
+                        let nsMarkerRange = NSRange(location: currentLocation, length: markerLen)
+                        textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: nsMarkerRange)
+                        // Strikethrough completed items
+                        if trimmed.hasPrefix("- [x] ") || trimmed.hasPrefix("- [X] ") {
+                            let contentRange = NSRange(location: currentLocation + markerLen, length: line.count - markerLen)
+                            textStorage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: contentRange)
+                            textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: contentRange)
+                        }
+                    }
+                }
+                // Bullet points
+                else if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+                    if let markerRange = line.range(of: "^\\s*[\\-\\*] ", options: .regularExpression) {
+                        let markerLen = line.distance(from: line.startIndex, to: markerRange.upperBound)
+                        let nsMarkerRange = NSRange(location: currentLocation, length: markerLen)
+                        textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: nsMarkerRange)
+                    }
+                }
+                // Numbered lists
+                else if trimmed.range(of: "^\\d+\\. ", options: .regularExpression) != nil {
+                    if let match = line.range(of: "^\\s*\\d+\\. ", options: .regularExpression) {
+                        let markerLength = line.distance(from: line.startIndex, to: match.upperBound)
+                        let markerRange = NSRange(location: currentLocation, length: markerLength)
+                        textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: markerRange)
+                    }
                 }
 
-                // Apply inline formatting (bold and italic)
+                // Apply inline formatting
                 applyInlineFormatting(to: textStorage, in: line, startingAt: currentLocation, baseFont: baseFont, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
 
-                currentLocation += line.count + 1 // +1 for newline
+                currentLocation += line.count + 1
             }
 
             textStorage.endEditing()
@@ -629,18 +681,14 @@ struct LiveMarkdownEditor: NSViewRepresentable {
 
         private func applyInlineFormatting(to textStorage: NSTextStorage, in line: String, startingAt offset: Int, baseFont: NSFont, hiddenFont: NSFont, hiddenColor: NSColor) {
             // Bold: **text** or __text__
-            let boldPattern = "(\\*\\*|__)(.+?)\\1"
-            if let boldRegex = try? NSRegularExpression(pattern: boldPattern) {
+            if let boldRegex = try? NSRegularExpression(pattern: "(\\*\\*|__)(.+?)\\1") {
                 let matches = boldRegex.matches(in: line, range: NSRange(location: 0, length: line.count))
                 for match in matches {
                     let contentRange = match.range(at: 2)
                     let contentNSRange = NSRange(location: offset + contentRange.location, length: contentRange.length)
-
-                    // Make content bold
                     let boldFont = NSFont.boldSystemFont(ofSize: baseFont.pointSize)
                     textStorage.addAttribute(.font, value: boldFont, range: contentNSRange)
 
-                    // Hide the markers completely
                     let markerLength = 2
                     let startMarker = NSRange(location: offset + match.range.location, length: markerLength)
                     let endMarker = NSRange(location: offset + match.range.location + match.range.length - markerLength, length: markerLength)
@@ -649,15 +697,12 @@ struct LiveMarkdownEditor: NSViewRepresentable {
                 }
             }
 
-            // Italic: *text* or _text_ (but not ** or __)
-            let italicPattern = "(?<![\\*_])([\\*_])(?![\\*_])(.+?)(?<![\\*_])\\1(?![\\*_])"
-            if let italicRegex = try? NSRegularExpression(pattern: italicPattern) {
+            // Italic: *text* or _text_ (not ** or __)
+            if let italicRegex = try? NSRegularExpression(pattern: "(?<![\\*_])([\\*_])(?![\\*_])(.+?)(?<![\\*_])\\1(?![\\*_])") {
                 let matches = italicRegex.matches(in: line, range: NSRange(location: 0, length: line.count))
                 for match in matches {
                     let contentRange = match.range(at: 2)
                     let contentNSRange = NSRange(location: offset + contentRange.location, length: contentRange.length)
-
-                    // Make content italic
                     let italicFont = NSFontManager.shared.font(
                         withFamily: baseFont.familyName ?? "System Font",
                         traits: .italicFontMask,
@@ -666,9 +711,54 @@ struct LiveMarkdownEditor: NSViewRepresentable {
                     ) ?? NSFont.systemFont(ofSize: baseFont.pointSize)
                     textStorage.addAttribute(.font, value: italicFont, range: contentNSRange)
 
-                    // Hide the markers completely
                     let startMarker = NSRange(location: offset + match.range.location, length: 1)
                     let endMarker = NSRange(location: offset + match.range.location + match.range.length - 1, length: 1)
+                    hideMarker(in: textStorage, range: startMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
+                    hideMarker(in: textStorage, range: endMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
+                }
+            }
+
+            // Strikethrough: ~~text~~
+            if let strikeRegex = try? NSRegularExpression(pattern: "~~(.+?)~~") {
+                let matches = strikeRegex.matches(in: line, range: NSRange(location: 0, length: line.count))
+                for match in matches {
+                    let contentRange = match.range(at: 1)
+                    let contentNSRange = NSRange(location: offset + contentRange.location, length: contentRange.length)
+                    textStorage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: contentNSRange)
+                    textStorage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: contentNSRange)
+
+                    let startMarker = NSRange(location: offset + match.range.location, length: 2)
+                    let endMarker = NSRange(location: offset + match.range.location + match.range.length - 2, length: 2)
+                    hideMarker(in: textStorage, range: startMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
+                    hideMarker(in: textStorage, range: endMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
+                }
+            }
+
+            // Highlight: ==text==
+            if let highlightRegex = try? NSRegularExpression(pattern: "==(.+?)==") {
+                let matches = highlightRegex.matches(in: line, range: NSRange(location: 0, length: line.count))
+                for match in matches {
+                    let contentRange = match.range(at: 1)
+                    let contentNSRange = NSRange(location: offset + contentRange.location, length: contentRange.length)
+                    textStorage.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.3), range: contentNSRange)
+
+                    let startMarker = NSRange(location: offset + match.range.location, length: 2)
+                    let endMarker = NSRange(location: offset + match.range.location + match.range.length - 2, length: 2)
+                    hideMarker(in: textStorage, range: startMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
+                    hideMarker(in: textStorage, range: endMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
+                }
+            }
+
+            // Underline: <u>text</u>
+            if let underlineRegex = try? NSRegularExpression(pattern: "<u>(.+?)</u>") {
+                let matches = underlineRegex.matches(in: line, range: NSRange(location: 0, length: line.count))
+                for match in matches {
+                    let contentRange = match.range(at: 1)
+                    let contentNSRange = NSRange(location: offset + contentRange.location, length: contentRange.length)
+                    textStorage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: contentNSRange)
+
+                    let startMarker = NSRange(location: offset + match.range.location, length: 3) // <u>
+                    let endMarker = NSRange(location: offset + match.range.location + match.range.length - 4, length: 4) // </u>
                     hideMarker(in: textStorage, range: startMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
                     hideMarker(in: textStorage, range: endMarker, hiddenFont: hiddenFont, hiddenColor: hiddenColor)
                 }
@@ -678,7 +768,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
 }
 
 #Preview {
-    MarkdownNotesEditor(text: .constant("# Heading 1\n\nSome **bold** and _italic_ text.\n\n## Heading 2\n\n- Bullet point\n- Another point\n\n1. Numbered\n2. List"), noteTitle: .constant("My Notes"))
+    MarkdownNotesEditor(text: .constant("# Heading 1\n\nSome **bold** and _italic_ text.\n\n## Heading 2\n\n- Bullet point\n- Another point\n\n1. Numbered\n2. List\n\n~~strikethrough~~ and ==highlighted== text\n\n> A block quote\n\n- [ ] Todo item\n- [x] Done item"), noteTitle: .constant("My Notes"))
         .frame(width: 500)
         .padding()
 }
