@@ -6,7 +6,7 @@ struct RecordingDetailView: View {
     let className: String
 
     @State private var selectedTab: DetailTab = .transcript
-    @StateObject private var viewModel = RecordingViewModel()
+    @EnvironmentObject private var viewModel: RecordingViewModel
     @Environment(\.dismiss) private var dismiss
 
     enum DetailTab: String, CaseIterable, Identifiable {
@@ -44,6 +44,7 @@ struct RecordingDetailView: View {
             // Content
             tabContent
         }
+        .background(SpongeTheme.coralPale.opacity(0.4))
         .frame(minWidth: 600, minHeight: 500)
         .alert("Regeneration Failed", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
@@ -84,6 +85,15 @@ struct RecordingDetailView: View {
             } else {
                 HStack(spacing: SpongeTheme.spacingS) {
                     Button {
+                        Task { await viewModel.retranscribeWithWhisper(for: recording) }
+                    } label: {
+                        Label("Whisper", systemImage: "waveform.badge.magnifyingglass")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(recording.audioFileURL() == nil)
+                    .help("Re-transcribe audio on-device using Whisper for higher accuracy")
+
+                    Button {
                         Task { await viewModel.improveTranscriptWithGemini(for: recording) }
                     } label: {
                         Label("Improve Transcript", systemImage: "sparkles")
@@ -110,6 +120,7 @@ struct RecordingDetailView: View {
             .tint(SpongeTheme.coral)
         }
         .padding(SpongeTheme.spacingM)
+        .background(SpongeTheme.cream)
     }
 
     // MARK: - Segmented Control
@@ -171,7 +182,7 @@ struct RecordingDetailView: View {
                     .padding(SpongeTheme.spacingM)
                     .background(
                         RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
-                            .fill(Color.primaryBackground)
+                            .fill(SpongeTheme.cream)
                             .shadow(color: SpongeTheme.shadowS, radius: 4, x: 0, y: 2)
                     )
                 } else {
@@ -199,7 +210,7 @@ struct RecordingDetailView: View {
                     .padding(SpongeTheme.spacingM)
                     .background(
                         RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
-                            .fill(Color.primaryBackground)
+                            .fill(SpongeTheme.cream)
                             .shadow(color: SpongeTheme.shadowS, radius: 4, x: 0, y: 2)
                     )
                 }
@@ -614,4 +625,5 @@ private struct MarkerContextSheet: View {
         ),
         className: "CS 201"
     )
+    .environmentObject(RecordingViewModel())
 }

@@ -19,8 +19,7 @@ struct ClassEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // Class Name Section
+            Form {                // Class Name Section
                 Section {
                     TextField("e.g., Biology 101", text: $className)
                         .font(.body)
@@ -54,6 +53,8 @@ struct ClassEditorView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(SpongeTheme.coralPale.opacity(0.4))
             .navigationTitle(isEditing ? "Edit Class" : "New Class")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -94,7 +95,7 @@ struct ClassEditorView: View {
                             .font(.caption)
                             .fontWeight(isOn ? .semibold : .regular)
                             .frame(width: 36, height: 28)
-                            .background(isOn ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
+                            .background(isOn ? SpongeTheme.coral : SpongeTheme.cream)
                             .foregroundColor(isOn ? .white : .primary)
                             .cornerRadius(6)
                     }

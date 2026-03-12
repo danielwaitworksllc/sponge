@@ -262,77 +262,84 @@ class SpeechAnalyzerService: ObservableObject {
                           userInfo: [NSLocalizedDescriptionKey: "Audio file not found at \(fileURL.path)"])
         }
 
-        // .transcription: no volatileResults / fastResults, uses finalized results only.
-        // NOTE: The research indicates .offlineTranscription is the optimal preset for files,
-        // but it does not exist in the current SDK build. Using .transcription as the closest
-        // available equivalent (same flags: no volatile, no fast).
-        let offlineTranscriber = SpeechTranscriber(
-            locale: Locale.current,
-            preset: .transcription
-        )
+        print("SpeechAnalyzerService: Starting offline transcription of \(fileURL.lastPathComponent)")
 
-        // Open the audio file early so we can pass its format as a hint to bestAvailableAudioFormat,
-        // giving the framework the best chance to return a compatible format without conversion.
+        let offlineTranscriber = SpeechTranscriber(locale: Locale.current, preset: .transcription)
+
         let audioFile = try AVAudioFile(forReading: fileURL)
         let sourceFormat = audioFile.processingFormat
+        print("SpeechAnalyzerService: Audio file — frames=\(audioFile.length), sourceFormat=\(sourceFormat)")
 
-        // bestAvailableAudioFormat is NOT throwing — returns AVAudioFormat? (no try needed).
-        // Pass the source format as 'considering:' so the framework can match it when possible.
         let targetFormat: AVAudioFormat
         if let negotiated = await SpeechAnalyzer.bestAvailableAudioFormat(
-            compatibleWith: [offlineTranscriber],
-            considering: sourceFormat
+            compatibleWith: [offlineTranscriber], considering: sourceFormat
         ) {
             targetFormat = negotiated
+            print("SpeechAnalyzerService: Negotiated target format: \(targetFormat)")
         } else if let fallback = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: false) {
             targetFormat = fallback
+            print("SpeechAnalyzerService: Using fallback 16kHz int16 format")
         } else {
             throw NSError(domain: "SpeechAnalyzerService", code: 2,
                           userInfo: [NSLocalizedDescriptionKey: "Could not create audio format for offline transcription"])
         }
 
-        // Build the input stream
+        guard let converter = AVAudioConverter(from: sourceFormat, to: targetFormat) else {
+            throw NSError(domain: "SpeechAnalyzerService", code: 3,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create audio converter from \(sourceFormat) to \(targetFormat)"])
+        }
+
         let (inputSequence, inputContinuation) = AsyncStream<AnalyzerInput>.makeStream()
 
-        let offlineAnalyzer = SpeechAnalyzer(
-            inputSequence: inputSequence,
-            modules: [offlineTranscriber]
-        )
+        let offlineAnalyzer = SpeechAnalyzer(inputSequence: inputSequence, modules: [offlineTranscriber])
+        try await offlineAnalyzer.prepareToAnalyze(in: targetFormat)
+        print("SpeechAnalyzerService: Analyzer prepared, feeding audio...")
 
-        let audioFormatHint: AVAudioFormat? = nil
-        try await offlineAnalyzer.prepareToAnalyze(in: audioFormatHint)
-
-        // Collect the final result before we start feeding audio
-        async let transcriptTask: String = {
-            var fullText = ""
+        // Collect results in a concurrent child task so it runs while we feed audio below.
+        // Using Task instead of async let to avoid ambiguity with the immediately-invoked closure.
+        let resultsCollector = Task<String, Never> {
+            var accumulated = ""
+            var baseTranscript = ""
+            var lastResultLength = 0
             do {
                 for try await result in offlineTranscriber.results {
-                    // Offline preset emits a single finalized result at the end
-                    fullText = String(result.text.characters)
+                    let newText = String(result.text.characters)
+                    guard !newText.isEmpty else { continue }
+                    // Same window-slide accumulation as the live pass:
+                    // when the new result is dramatically shorter than the last, the
+                    // transcriber has slid its context window — save what we have and
+                    // start a fresh window segment.
+                    let isWindowSlide = newText.count < (lastResultLength / 2) && lastResultLength > 20
+                    if isWindowSlide {
+                        baseTranscript = accumulated
+                    }
+                    accumulated = baseTranscript.isEmpty ? newText : baseTranscript + " " + newText
+                    lastResultLength = newText.count
+                    print("SpeechAnalyzerService: Got result (\(newText.count) chars, total \(accumulated.count))")
                 }
             } catch {
-                print("SpeechAnalyzerService offline: results error: \(error)")
+                print("SpeechAnalyzerService: Results error: \(error)")
             }
-            return fullText
-        }()
+            print("SpeechAnalyzerService: Results sequence ended, accumulated.count=\(accumulated.count)")
+            return accumulated
+        }
 
-        // Feed the audio file into the analyzer (audioFile already opened above)
-        let converter = AVAudioConverter(from: sourceFormat, to: targetFormat)
-
+        // Feed audio file into the analyzer in chunks
         let readBufferSize: AVAudioFrameCount = 4096
-        let readBuffer = AVAudioPCMBuffer(pcmFormat: audioFile.processingFormat, frameCapacity: readBufferSize)!
+        let readBuffer = AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: readBufferSize)!
+        var framesYielded = 0
 
         while audioFile.framePosition < audioFile.length {
             let framesToRead = min(readBufferSize, AVAudioFrameCount(audioFile.length - audioFile.framePosition))
             readBuffer.frameLength = framesToRead
             try audioFile.read(into: readBuffer, frameCount: framesToRead)
 
-            // Convert to the target format
-            let outputCapacity = AVAudioFrameCount(Double(framesToRead) * targetFormat.sampleRate / audioFile.processingFormat.sampleRate) + 1
+            let outputCapacity = AVAudioFrameCount(Double(framesToRead) * targetFormat.sampleRate / sourceFormat.sampleRate) + 1
             guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputCapacity) else { continue }
 
             var hasData = true
-            converter?.convert(to: convertedBuffer, error: nil) { _, outStatus in
+            var convertError: NSError?
+            converter.convert(to: convertedBuffer, error: &convertError) { _, outStatus in
                 if hasData {
                     hasData = false
                     outStatus.pointee = .haveData
@@ -342,13 +349,33 @@ class SpeechAnalyzerService: ObservableObject {
                 return nil
             }
 
-            inputContinuation.yield(AnalyzerInput(buffer: convertedBuffer))
+            if let err = convertError {
+                print("SpeechAnalyzerService: Converter error at frame \(framesYielded): \(err)")
+                continue
+            }
+
+            if convertedBuffer.frameLength > 0 {
+                inputContinuation.yield(AnalyzerInput(buffer: convertedBuffer))
+                framesYielded += Int(convertedBuffer.frameLength)
+            }
         }
 
-        // Signal end of audio — triggers finalization of the offline model
+        print("SpeechAnalyzerService: Finished feeding \(framesYielded) frames, closing stream")
+
+        // Close the input stream — the analyzer processes remaining audio and finalizes,
+        // which terminates the results sequence and unblocks resultsCollector.
         inputContinuation.finish()
 
-        let result = await transcriptTask
+        // Guard against the results sequence never terminating (e.g. analyzer internal failure).
+        // After 3 minutes we cancel the collector and return whatever was accumulated.
+        let timeoutTask = Task {
+            try? await Task.sleep(for: .seconds(180))
+            resultsCollector.cancel()
+        }
+
+        let result = await resultsCollector.value
+        timeoutTask.cancel()
+        print("SpeechAnalyzerService: Offline transcription complete — \(result.count) chars")
         return result
     }
 }

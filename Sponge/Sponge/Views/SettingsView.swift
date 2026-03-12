@@ -184,7 +184,7 @@ struct SettingsView: View {
                 }
                 .padding(20)
             }
-            .background(SpongeTheme.backgroundCoral.opacity(0.05))
+            .background(SpongeTheme.coralPale.opacity(0.4))
             .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -249,7 +249,7 @@ struct SettingsSection<Content: View>: View {
                 content
                     .padding(16)
             }
-            .background(Color.white)
+            .background(SpongeTheme.cream)
             .cornerRadius(SpongeTheme.cornerRadiusM)
             .overlay(
                 RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)

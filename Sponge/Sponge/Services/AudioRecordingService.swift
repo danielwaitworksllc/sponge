@@ -47,7 +47,7 @@ class AudioRecordingService: NSObject, ObservableObject {
         }
     }
 
-    func startRecording() -> URL? {
+    func startRecording(meetingMode: Bool = false) -> URL? {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let recordingsPath = documentsPath.appendingPathComponent("Recordings")
 
@@ -55,11 +55,11 @@ class AudioRecordingService: NSObject, ObservableObject {
         let fileName = "recording_\(Date().timeIntervalSince1970).m4a"
         let fileURL = recordingsPath.appendingPathComponent(fileName)
 
-        print("AudioRecordingService: Attempting to start recording to \(fileURL.path)")
+        print("AudioRecordingService: Attempting to start recording to \(fileURL.path) (meetingMode=\(meetingMode))")
 
         // Use SharedAudioManager to avoid conflicts with transcription's AVAudioEngine
         do {
-            try SharedAudioManager.shared.startAudioEngine(recordingToURL: fileURL)
+            try SharedAudioManager.shared.startAudioEngine(recordingToURL: fileURL, meetingMode: meetingMode)
 
             currentFileURL = fileURL
             recordingState = .recording

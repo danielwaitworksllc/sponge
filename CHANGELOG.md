@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-03-11
+Added first-launch onboarding wizard (OnboardingView): a 3-step flow (Welcome → Gemini API Key → Ready) that guides new users through setup before they hit any errors. Onboarding state persisted via AppStorage so it only shows once.
+
+## 2026-03-04
+Fixed post-recording pipeline hang: offline SpeechAnalyzer transcription now times out after 3 minutes instead of blocking indefinitely. Added "Recording saved" toast so the user always gets feedback after stopping a recording, even when auto-generate notes is off.
+
+## 2026-03-03
+Added class start notifications (fires 5 min before each scheduled class, repeating weekly via UNCalendarNotificationTrigger) and automatic video call detection: polls every 30s for Zoom and Teams via NSRunningApplication bundle IDs, and Google Meet via SCShareableContent window title scan. Shows a toast suggesting Meeting mode when a call is detected. Notification permission requested on first launch; notifications reschedule automatically when classes are added, updated, or deleted.
+
+## 2026-03-03
+Added Meeting mode: captures system audio (Zoom, Teams, Meet, browser calls) mixed with microphone using ScreenCaptureKit. New `SystemAudioCaptureService` wraps SCStream, new `AudioMixer` uses a ring buffer + vDSP for thread-safe sample-level mixing. RecordingView gains a Lecture/Meeting segmented picker; Screen Recording permission required for meeting mode with a deeplink alert if denied. Lecture mode unaffected.
+
+## 2026-03-03
+Fixed offline transcription returning empty: nil-check AVAudioConverter (throws instead of silently feeding empty buffers), removed deadlock from `finalizeAndFinishThroughEndOfInput()` while stream was still open, switched result collection to a `Task` with full logging. Fixed detail view progress indicator by sharing ContentView's `RecordingViewModel` as `@EnvironmentObject` — previously each detail view created its own instance so `isImprovingTranscript` was always false.
+
+## 2026-03-03
+Called `finalizeAndFinishThroughEndOfInput()` on the SpeechAnalyzer instance in `transcribeFile(at:)` to flush any audio the model holds in its buffer before the results sequence closes, ensuring the final segment of speech is not dropped in offline transcription.
+
 ## 2026-03-03
 Improved offline transcription: pass source audio format as `considering:` hint to `bestAvailableAudioFormat` (reducing unnecessary conversion), removed erroneous `try?` from the non-throwing call. Attempted `.offlineTranscription` preset per research but it does not exist in current SDK; staying on `.transcription` (same flags: no volatile, no fast results).
 

@@ -4,6 +4,7 @@ struct RecordingView: View {
     @EnvironmentObject var classViewModel: ClassViewModel
     @ObservedObject var recordingViewModel: RecordingViewModel
     @State private var showingPermissionAlert = false
+    @State private var showingScreenPermissionAlert = false
     @State private var isConfirmingStop = false
     @State private var showFullTranscript = false
     @State private var ringAnimation = false
@@ -23,6 +24,14 @@ struct RecordingView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Please enable microphone and speech recognition permissions in System Settings.")
+        }
+        .alert("Screen Recording Permission Required", isPresented: $showingScreenPermissionAlert) {
+            Button("Open System Settings") {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Meeting mode captures audio from video calls (Zoom, Teams, Meet). Enable Screen Recording in System Settings → Privacy & Security → Screen Recording, then try again.")
         }
     }
 
@@ -369,6 +378,14 @@ struct RecordingView: View {
             // Record button
             recordButton
 
+            // Mode toggle: Lecture vs Meeting
+            Picker("Recording Mode", selection: $recordingViewModel.isMeetingMode) {
+                Label("Lecture", systemImage: "book.fill").tag(false)
+                Label("Meeting", systemImage: "video.fill").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 220)
+
             // Status/warning text
             statusText
 
@@ -451,7 +468,7 @@ struct RecordingView: View {
             .foregroundColor(SpongeTheme.coral)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color.white)
+            .background(SpongeTheme.cream)
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
@@ -477,6 +494,10 @@ struct RecordingView: View {
             Label("Configure save location in Settings", systemImage: "exclamationmark.triangle")
                 .font(.subheadline)
                 .foregroundColor(.orange)
+        } else if recordingViewModel.isMeetingMode {
+            Label("Mic + system audio (Zoom, Teams, Meet)", systemImage: "video.fill")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         } else {
             Text("Tap to start recording")
                 .font(.subheadline)
@@ -517,16 +538,33 @@ struct RecordingView: View {
     // MARK: - Methods
 
     private func startRecordingWithPermissionCheck() {
-        if recordingViewModel.permissionsGranted {
-            recordingViewModel.startRecording()
-        } else {
-            recordingViewModel.requestPermissions { granted in
-                if granted {
-                    recordingViewModel.startRecording()
-                } else {
-                    showingPermissionAlert = true
+        let doStart = {
+            if self.recordingViewModel.permissionsGranted {
+                self.recordingViewModel.startRecording()
+            } else {
+                self.recordingViewModel.requestPermissions { granted in
+                    if granted {
+                        self.recordingViewModel.startRecording()
+                    } else {
+                        self.showingPermissionAlert = true
+                    }
                 }
             }
+        }
+
+        if recordingViewModel.isMeetingMode {
+            Task {
+                let screenGranted = await SystemAudioCaptureService.checkPermission()
+                await MainActor.run {
+                    if screenGranted {
+                        doStart()
+                    } else {
+                        showingScreenPermissionAlert = true
+                    }
+                }
+            }
+        } else {
+            doStart()
         }
     }
 

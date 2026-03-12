@@ -130,6 +130,7 @@ final class SDRecording {
     var enhancedSummaryData: Data?
     var recallPromptsData: Data?
     var catchUpSummariesData: Data?
+    var whisperSegmentsData: Data?
 
     var sdClass: SDClass?
 
@@ -204,6 +205,17 @@ final class SDRecording {
         }
         set {
             catchUpSummariesData = try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    /// Whisper segment-level timestamps stored for future playback sync / timestamped transcript UI.
+    var whisperSegments: [WhisperSegment] {
+        get {
+            guard let data = whisperSegmentsData else { return [] }
+            return (try? JSONDecoder().decode([WhisperSegment].self, from: data)) ?? []
+        }
+        set {
+            whisperSegmentsData = try? JSONEncoder().encode(newValue)
         }
     }
 

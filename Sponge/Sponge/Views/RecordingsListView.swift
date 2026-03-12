@@ -20,7 +20,7 @@ struct RecordingsListView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .background(Color.white)
+            .background(SpongeTheme.cream)
             .overlay(
                 Rectangle()
                     .fill(SpongeTheme.coral.opacity(0.2))
@@ -89,6 +89,7 @@ struct RecordingsListView: View {
 struct RecordingRowView: View {
     let recording: SDRecording
     @ObservedObject var classViewModel: ClassViewModel
+    @EnvironmentObject private var recordingViewModel: RecordingViewModel
     @State private var showingDetail = false
     @State private var showingEditSheet = false
     @State private var showingDeleteConfirmation = false
@@ -101,7 +102,7 @@ struct RecordingRowView: View {
                 // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white)
+                        .fill(SpongeTheme.cream)
                         .frame(width: 40, height: 40)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -128,7 +129,7 @@ struct RecordingRowView: View {
                             .foregroundColor(SpongeTheme.coral)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Color.white)
+                            .background(SpongeTheme.cream)
                             .cornerRadius(4)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 4)

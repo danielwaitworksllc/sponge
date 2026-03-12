@@ -15,6 +15,7 @@ struct ClassManagementView: View {
                     classList
                 }
             }
+            .background(SpongeTheme.coralPale.opacity(0.4))
             .navigationTitle("Manage Classes")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -68,7 +69,7 @@ struct ClassManagementView: View {
                 Label("Add Class", systemImage: "plus")
                     .font(.headline)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PrimaryButtonStyle(color: SpongeTheme.coral))
             .padding(.top, 8)
 
             Spacer()
@@ -88,6 +89,7 @@ struct ClassManagementView: View {
             .onDelete(perform: deleteClasses)
         }
         .listStyle(.inset)
+        .scrollContentBackground(.hidden)
     }
 
     private func deleteClasses(at offsets: IndexSet) {
@@ -158,7 +160,7 @@ struct ClassRowView: View {
     }
 
     private var statusColor: Color {
-        classModel.isConfigurationValid ? .accentColor : .orange
+        classModel.isConfigurationValid ? SpongeTheme.coral : .orange
     }
 }
 

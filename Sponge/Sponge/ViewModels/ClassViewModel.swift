@@ -37,6 +37,8 @@ class ClassViewModel: ObservableObject {
         if selectedClass == nil {
             selectedClass = newClass
         }
+
+        NotificationService.shared.rescheduleAll(for: classes)
     }
 
     func updateClass(_ classModel: SDClass, name: String, folderURL: URL?) {
@@ -48,6 +50,8 @@ class ClassViewModel: ObservableObject {
         if selectedClass?.id == classModel.id {
             selectedClass = classModel
         }
+
+        NotificationService.shared.rescheduleAll(for: classes)
     }
 
     func deleteClass(_ classModel: SDClass) {
@@ -65,6 +69,8 @@ class ClassViewModel: ObservableObject {
         if selectedClass?.id == classModel.id {
             selectedClass = classes.first
         }
+
+        NotificationService.shared.rescheduleAll(for: classes)
     }
 
     // MARK: - Recording Management

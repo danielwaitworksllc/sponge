@@ -13,6 +13,7 @@ class RecordingViewModel: ObservableObject {
     @Published var isExporting: Bool = false
     @Published var isGeneratingNotes: Bool = false
     @Published var isImprovingTranscript: Bool = false
+    @Published var isMeetingMode: Bool = false
     @Published var userNotes: String = ""
     @Published var userNotesTitle: String = ""
 
@@ -101,7 +102,7 @@ class RecordingViewModel: ObservableObject {
             transcriptionService.startTranscribing()
         }
 
-        guard let audioURL = audioService.startRecording() else {
+        guard let audioURL = audioService.startRecording(meetingMode: isMeetingMode) else {
             DispatchQueue.main.async {
                 self.errorMessage = self.audioService.lastError ?? "Failed to start recording"
             }
@@ -284,6 +285,11 @@ class RecordingViewModel: ObservableObject {
             // from the best available transcript, not the raw live result.
             // Battery-save mode (skipGeminiUpgrade=true) already did this pass.
             if !skipGeminiUpgrade {
+                // Yield so the live SpeechAnalyzer session's MainActor cleanup task
+                // (analyzer = nil, transcriber = nil) runs before we create a new one.
+                // Without this, the offline prepareToAnalyze() can block on the
+                // shared internal model queue while the previous session is still live.
+                await Task.yield()
                 await self.runOfflineTranscriptUpgrade(for: recording, audioURL: audioURL)
             }
 
@@ -292,6 +298,13 @@ class RecordingViewModel: ObservableObject {
                 await self.generateEnhancedContent(for: recording, classModel: classModel, classViewModel: classViewModel)
             } else {
                 self.exportPDF(for: recording, classModel: classModel, classViewModel: classViewModel)
+                // Show confirmation so the user knows the recording was saved
+                let hasTranscript = !recording.transcriptText.isEmpty
+                self.toastMessage = ToastMessage(
+                    message: hasTranscript ? "Recording saved with transcript" : "Recording saved (no transcript)",
+                    icon: hasTranscript ? "checkmark.circle.fill" : "exclamationmark.triangle",
+                    type: hasTranscript ? .success : .error
+                )
             }
         }
     }
@@ -303,19 +316,85 @@ class RecordingViewModel: ObservableObject {
     @MainActor
     private func runOfflineTranscriptUpgrade(for recording: SDRecording, audioURL: URL) async {
         isImprovingTranscript = true
-        toastMessage = ToastMessage(message: "Refining transcript on-device...", icon: "waveform.badge.magnifyingglass", type: .info)
+        toastMessage = ToastMessage(message: "Refining transcript with Whisper...", icon: "waveform.badge.magnifyingglass", type: .info)
 
         do {
-            let offlineTranscript = try await transcriptionService.transcribeAudioFile(url: audioURL)
-            if !offlineTranscript.isEmpty {
+            let whisperService = WhisperKitService.shared
+            // Only use Whisper automatically if the model is already cached.
+            // If not ready, fall through to the Apple offline pass immediately —
+            // the user can trigger Whisper manually from the detail view once downloaded.
+            guard whisperService.modelReady else {
+                throw WhisperKitService.TranscriptionError.modelNotLoaded
+            }
+            let (offlineTranscript, segments) = try await whisperService.transcribe(audioURL: audioURL)
+            let existingWordCount = recording.transcriptText.split(separator: " ").count
+            let offlineWordCount = offlineTranscript.split(separator: " ").count
+            let isSubstantial = existingWordCount == 0 || Double(offlineWordCount) >= Double(existingWordCount) * 0.7
+            if !offlineTranscript.isEmpty && isSubstantial {
                 recording.transcriptText = offlineTranscript
+                recording.whisperSegments = segments
                 toastMessage = ToastMessage(message: "Transcript refined — generating notes...", icon: "checkmark.circle", type: .success)
             }
         } catch {
-            print("Offline transcript upgrade failed (non-fatal): \(error.localizedDescription)")
+            print("WhisperKit offline pass failed, falling back to Apple offline pass: \(error.localizedDescription)")
+            // Fall back to Apple SpeechAnalyzer offline pass
+            do {
+                let offlineTranscript = try await transcriptionService.transcribeAudioFile(url: audioURL)
+                let existingWordCount = recording.transcriptText.split(separator: " ").count
+                let offlineWordCount = offlineTranscript.split(separator: " ").count
+                let isSubstantial = existingWordCount == 0 || Double(offlineWordCount) >= Double(existingWordCount) * 0.7
+                if !offlineTranscript.isEmpty && isSubstantial {
+                    recording.transcriptText = offlineTranscript
+                    toastMessage = ToastMessage(message: "Transcript refined — generating notes...", icon: "checkmark.circle", type: .success)
+                }
+            } catch {
+                print("Offline transcript upgrade failed (non-fatal): \(error.localizedDescription)")
+            }
         }
 
         isImprovingTranscript = false
+    }
+
+    // MARK: - Manual Whisper Retranscription
+
+    /// Manually triggered from the detail view. Runs WhisperKit on the saved audio file
+    /// and replaces the transcript if the result is non-empty.
+    func retranscribeWithWhisper(for recording: SDRecording) async {
+        guard let audioURL = recording.audioFileURL() else {
+            await MainActor.run { self.errorMessage = "Audio file not found for this recording." }
+            return
+        }
+
+        await MainActor.run {
+            self.isImprovingTranscript = true
+            self.toastMessage = ToastMessage(message: "Running Whisper on audio...", icon: "waveform.badge.magnifyingglass", type: .info)
+        }
+
+        do {
+            let whisperService = WhisperKitService.shared
+            let needsDownload = await MainActor.run { !whisperService.modelReady }
+            if needsDownload {
+                await MainActor.run {
+                    self.toastMessage = ToastMessage(message: "Downloading Whisper model (~600MB)…", icon: "arrow.down.circle", type: .info)
+                }
+            }
+            let (transcript, segments) = try await whisperService.transcribe(audioURL: audioURL)
+            await MainActor.run {
+                defer { self.isImprovingTranscript = false }
+                guard !transcript.isEmpty else {
+                    self.toastMessage = ToastMessage(message: "Whisper returned empty transcript", icon: "exclamationmark.triangle", type: .error)
+                    return
+                }
+                recording.transcriptText = transcript
+                recording.whisperSegments = segments
+                self.toastMessage = ToastMessage(message: "Transcript updated with Whisper", icon: "checkmark.circle.fill", type: .success)
+            }
+        } catch {
+            await MainActor.run {
+                self.isImprovingTranscript = false
+                self.errorMessage = "Whisper transcription failed: \(error.localizedDescription)"
+            }
+        }
     }
 
     // MARK: - Manual Gemini Audio Transcription

@@ -8,5 +8,7 @@
 	<string>Sponge needs speech recognition to transcribe your recordings in real-time.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Sponge can automatically detect your class schedule to help organize recordings.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Sponge needs Screen Recording permission to capture audio from video calls (Zoom, Teams, Meet) in Meeting mode.</string>
 </dict>
 </plist>

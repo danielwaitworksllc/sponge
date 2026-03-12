@@ -9,6 +9,9 @@
 
 import Foundation
 import AVFoundation
+import ScreenCaptureKit
+import CoreMedia
+import Accelerate
 
 /// Singleton that manages shared audio engine access on macOS
 /// This prevents conflicts when both recording and transcription need the microphone
@@ -39,13 +42,18 @@ class SharedAudioManager {
     private var recordingURL: URL?
     private var audioConverter: AVAudioConverter?
 
+    // Meeting mode: captures system audio and mixes with mic
+    private let systemAudioCapture = SystemAudioCaptureService()
+    private let audioMixer = AudioMixer()
+
     // Callbacks for transcription service to receive audio buffers
     var transcriptionBufferHandler: ((AVAudioPCMBuffer) -> Void)?
 
     private init() {}
 
-    /// Starts the shared audio engine and optionally begins recording to file
-    func startAudioEngine(recordingToURL url: URL?) throws {
+    /// Starts the shared audio engine and optionally begins recording to file.
+    /// Set `meetingMode: true` to also capture system audio via ScreenCaptureKit.
+    func startAudioEngine(recordingToURL url: URL?, meetingMode: Bool = false) throws {
         // Stop any existing engine
         _ = stopAudioEngine()
 
@@ -115,13 +123,16 @@ class SharedAudioManager {
                 (self._isRecording, self._audioFile, self._outputFormat)
             }
 
+            // Mix system audio into mic buffer if meeting mode is active
+            let mixedBuffer = self.audioMixer.mix(micBuffer: buffer)
+
             // Write to file if recording
             if recording, let audioFile = file, let outFormat = outFormat {
                 do {
                     // Convert buffer if necessary
                     if let converter = self.audioConverter {
                         let ratio = outFormat.sampleRate / inputSampleRate
-                        let frameCount = AVAudioFrameCount(Double(buffer.frameLength) * ratio)
+                        let frameCount = AVAudioFrameCount(Double(mixedBuffer.frameLength) * ratio)
                         guard frameCount > 0,
                               let convertedBuffer = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: frameCount) else { return }
 
@@ -131,7 +142,7 @@ class SharedAudioManager {
                             if hasData {
                                 hasData = false
                                 outStatus.pointee = .haveData
-                                return buffer
+                                return mixedBuffer
                             } else {
                                 outStatus.pointee = .noDataNow
                                 return nil
@@ -146,21 +157,39 @@ class SharedAudioManager {
                             try audioFile.write(from: convertedBuffer)
                         }
                     } else {
-                        try audioFile.write(from: buffer)
+                        try audioFile.write(from: mixedBuffer)
                     }
                 } catch {
                     print("SharedAudioManager: Error writing to file: \(error)")
                 }
             }
 
-            // Send to transcription handler
-            self.transcriptionBufferHandler?(buffer)
+            // Send mixed buffer to transcription handler
+            self.transcriptionBufferHandler?(mixedBuffer)
         }
 
         audioEngine.prepare()
         try audioEngine.start()
 
         print("SharedAudioManager: Audio engine started successfully")
+
+        // Start system audio capture AFTER engine is running (consumer before producer)
+        if meetingMode {
+            audioMixer.isMixingEnabled = true
+            systemAudioCapture.audioSampleBufferHandler = { [weak self] cmBuffer in
+                self?.handleSystemAudioBuffer(cmBuffer)
+            }
+            Task {
+                do {
+                    try await systemAudioCapture.startCapture()
+                    print("SharedAudioManager: System audio capture started")
+                } catch {
+                    print("SharedAudioManager: Failed to start system audio capture: \(error)")
+                }
+            }
+        } else {
+            audioMixer.isMixingEnabled = false
+        }
     }
 
     /// Pauses audio capture (for pause recording functionality)
@@ -176,6 +205,12 @@ class SharedAudioManager {
     /// Stops the audio engine and finalizes any recording
     @discardableResult
     func stopAudioEngine() -> URL? {
+        // Stop system audio producer before stopping engine consumer
+        systemAudioCapture.stopCapture()
+        systemAudioCapture.audioSampleBufferHandler = nil
+        audioMixer.reset()
+        audioMixer.isMixingEnabled = false
+
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
@@ -188,6 +223,76 @@ class SharedAudioManager {
         audioConverter = nil
 
         return url
+    }
+
+    // MARK: - System Audio Handling
+
+    /// Converts a CMSampleBuffer from SCStream to AVAudioPCMBuffer,
+    /// downmixes stereo to mono, and feeds into the AudioMixer ring buffer.
+    private func handleSystemAudioBuffer(_ cmBuffer: CMSampleBuffer) {
+        guard let formatDesc = CMSampleBufferGetFormatDescription(cmBuffer) else { return }
+
+        let streamFormat = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)
+        guard var asbd = streamFormat?.pointee else { return }
+
+        // Build AVAudioFormat from the actual stream format (may be 44.1kHz or 48kHz stereo)
+        guard let sourceFormat = AVAudioFormat(streamDescription: &asbd) else { return }
+
+        let frameCount = AVAudioFrameCount(CMSampleBufferGetNumSamples(cmBuffer))
+        guard frameCount > 0 else { return }
+
+        // Copy PCM data from CMSampleBuffer into an AVAudioPCMBuffer
+        guard let sourcePCM = AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: frameCount) else { return }
+        sourcePCM.frameLength = frameCount
+
+        var audioBufferList = AudioBufferList()
+        var blockBuffer: CMBlockBuffer?
+        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+            cmBuffer,
+            bufferListSizeNeededOut: nil,
+            bufferListOut: &audioBufferList,
+            bufferListSize: MemoryLayout<AudioBufferList>.size,
+            blockBufferAllocator: nil,
+            blockBufferMemoryAllocator: nil,
+            flags: kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment,
+            blockBufferOut: &blockBuffer
+        )
+
+        guard status == noErr else {
+            print("SharedAudioManager: Failed to get audio buffer list: \(status)")
+            return
+        }
+
+        // Copy channel data
+        let channelCount = Int(asbd.mChannelsPerFrame)
+        guard let mBuffers = UnsafeMutableAudioBufferListPointer(&audioBufferList).first,
+              let srcData = mBuffers.mData else { return }
+
+        // Downmix stereo to mono: mono[i] = (L[i] + R[i]) * 0.5
+        // For interleaved stereo: samples are [L0, R0, L1, R1, ...]
+        guard let monoFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32,
+                                             sampleRate: asbd.mSampleRate,
+                                             channels: 1,
+                                             interleaved: false),
+              let monoPCM = AVAudioPCMBuffer(pcmFormat: monoFormat, frameCapacity: frameCount),
+              let monoData = monoPCM.floatChannelData?[0] else { return }
+        monoPCM.frameLength = frameCount
+
+        let srcFloats = srcData.bindMemory(to: Float.self, capacity: Int(frameCount) * channelCount)
+
+        if channelCount == 2 {
+            // Deinterleave and mix L+R * 0.5
+            for i in 0..<Int(frameCount) {
+                monoData[i] = (srcFloats[i * 2] + srcFloats[i * 2 + 1]) * 0.5
+            }
+        } else {
+            // Already mono — copy directly
+            for i in 0..<Int(frameCount) {
+                monoData[i] = srcFloats[i]
+            }
+        }
+
+        audioMixer.appendSystemAudio(monoPCM)
     }
 
     /// Returns the input format for transcription services to use
