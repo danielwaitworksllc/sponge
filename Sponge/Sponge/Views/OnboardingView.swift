@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct OnboardingView: View {
     var onComplete: (_ showAddClass: Bool) -> Void
@@ -6,8 +7,9 @@ struct OnboardingView: View {
     @State private var currentStep: Int = 0
     @State private var apiKey: String = ""
     @State private var apiKeySaved: Bool = false
+    @State private var micGranted: Bool = false
 
-    private let totalSteps = 3
+    private let totalSteps = 4
 
     var body: some View {
         ZStack {
@@ -32,6 +34,8 @@ struct OnboardingView: View {
                     case 0:
                         WelcomeStep()
                     case 1:
+                        MicPermissionStep(micGranted: $micGranted)
+                    case 2:
                         APIKeyStep(apiKey: $apiKey, apiKeySaved: $apiKeySaved)
                     default:
                         ReadyStep()
@@ -49,14 +53,14 @@ struct OnboardingView: View {
                 // Navigation buttons
                 VStack(spacing: 12) {
                     Button(action: advance) {
-                        Text(currentStep == totalSteps - 1 ? "Let's go" : "Continue")
+                        Text(continueLabel)
                             .frame(maxWidth: 300)
                     }
                     .buttonStyle(PrimaryButtonStyle(color: SpongeTheme.coral))
 
-                    if currentStep == 1 {
+                    if currentStep == 2 {
                         Button("Skip for now") {
-                            withAnimation { currentStep = totalSteps - 1 }
+                            withAnimation(.easeInOut(duration: 0.3)) { currentStep = totalSteps - 1 }
                         }
                         .foregroundColor(Color.white.opacity(0.75))
                         .font(.subheadline)
@@ -67,7 +71,7 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, 40)
         }
-        .frame(width: 560, height: 480)
+        .frame(width: 560, height: 500)
         .background(
             LinearGradient(
                 colors: [SpongeTheme.coral, SpongeTheme.backgroundCoral],
@@ -76,18 +80,36 @@ struct OnboardingView: View {
             )
         )
         .onAppear {
-            // Pre-fill if key already exists
             if let existing = KeychainHelper.shared.getGeminiAPIKey(), !existing.isEmpty {
                 apiKeySaved = true
             }
+            // Check if mic permission already granted
+            micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        }
+    }
+
+    private var continueLabel: String {
+        switch currentStep {
+        case 1 where !micGranted: return "Grant Microphone Access"
+        case totalSteps - 1: return "Let's go"
+        default: return "Continue"
         }
     }
 
     private func advance() {
-        if currentStep < totalSteps - 1 {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                currentStep += 1
+        if currentStep == 1 && !micGranted {
+            // Request mic permission, then auto-advance when granted
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                DispatchQueue.main.async {
+                    micGranted = granted
+                    withAnimation(.easeInOut(duration: 0.3)) { currentStep += 1 }
+                }
             }
+            return
+        }
+
+        if currentStep < totalSteps - 1 {
+            withAnimation(.easeInOut(duration: 0.3)) { currentStep += 1 }
         } else {
             onComplete(!apiKey.isEmpty || apiKeySaved)
         }
@@ -109,7 +131,7 @@ private struct WelcomeStep: View {
                     .font(.largeTitle.weight(.bold))
                     .foregroundColor(.white)
 
-                Text("Record your lectures, get real-time transcripts, and let AI turn them into study notes — all on-device.")
+                Text("Record your lectures, get real-time transcripts, and let AI turn them into study notes.")
                     .font(.body)
                     .foregroundColor(Color.white.opacity(0.85))
                     .multilineTextAlignment(.center)
@@ -117,9 +139,9 @@ private struct WelcomeStep: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                FeatureRow(icon: "mic.fill", text: "High-quality transcription via Apple SpeechAnalyzer")
+                FeatureRow(icon: "mic.fill", text: "Real-time transcription using Apple SpeechAnalyzer")
                 FeatureRow(icon: "note.text", text: "AI-generated notes, summaries, and recall prompts")
-                FeatureRow(icon: "lock.fill", text: "Everything stays private on your Mac")
+                FeatureRow(icon: "lock.fill", text: "Transcription stays fully on-device")
             }
             .padding(.top, 8)
         }
@@ -143,13 +165,68 @@ private struct FeatureRow: View {
     }
 }
 
-// MARK: - Step 2: Gemini API Key
+// MARK: - Step 2: Microphone Permission
+
+private struct MicPermissionStep: View {
+    @Binding var micGranted: Bool
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: micGranted ? "mic.fill" : "mic.slash.fill")
+                .font(.system(size: 64))
+                .foregroundColor(.white)
+                .symbolEffect(.bounce, value: micGranted)
+
+            VStack(spacing: 10) {
+                Text(micGranted ? "Microphone Ready" : "Allow Microphone Access")
+                    .font(.title.weight(.bold))
+                    .foregroundColor(.white)
+
+                Text(micGranted
+                    ? "Sponge can hear your lectures. You're good to go."
+                    : "Sponge needs your microphone to record and transcribe lectures. Tap the button below — macOS will ask you to confirm."
+                )
+                    .font(.body)
+                    .foregroundColor(Color.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+            }
+
+            if !micGranted {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                    Text("A system dialog will appear. Choose \"OK\" to continue.")
+                        .font(.caption)
+                }
+                .foregroundColor(Color.white.opacity(0.7))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.12))
+                .cornerRadius(8)
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("Permission granted")
+                        .font(.subheadline.weight(.medium))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.12))
+                .cornerRadius(8)
+            }
+        }
+    }
+}
+
+// MARK: - Step 3: Gemini API Key
 
 private struct APIKeyStep: View {
     @Binding var apiKey: String
     @Binding var apiKeySaved: Bool
 
-    @State private var isSaving: Bool = false
     @State private var saveError: String? = nil
 
     var body: some View {
@@ -163,75 +240,78 @@ private struct APIKeyStep: View {
                     .font(.title.weight(.bold))
                     .foregroundColor(.white)
 
-                Text("Add a free Gemini API key to unlock AI-generated study notes, summaries, and recall prompts after each lecture.")
+                Text("Paste a free Gemini API key to unlock AI study notes after each lecture. Takes 30 seconds to get one.")
                     .font(.body)
                     .foregroundColor(Color.white.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                if apiKeySaved {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text("API key saved securely")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color.white.opacity(0.15))
-                    .cornerRadius(10)
-                } else {
-                    SecureField("Paste your API key here", text: $apiKey)
-                        .textFieldStyle(.plain)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(10)
+            if apiKeySaved {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("API key saved — AI notes are enabled")
+                        .font(.subheadline.weight(.medium))
                         .foregroundColor(.white)
-
-                    if let error = saveError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(Color.yellow)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.white.opacity(0.15))
+                .cornerRadius(10)
+            } else {
+                VStack(spacing: 10) {
+                    // Step 1: Get key
+                    Link(destination: URL(string: "https://aistudio.google.com/app/apikey")!) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "safari")
+                            Text("Step 1 — Get a free API key at aistudio.google.com")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .foregroundColor(SpongeTheme.coral)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white)
+                        .cornerRadius(10)
                     }
 
-                    HStack(spacing: 16) {
-                        Button("Save Key") {
-                            saveKey()
-                        }
-                        .buttonStyle(SecondaryButtonStyle(color: .white))
-                        .disabled(apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
+                    // Step 2: Paste key
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Step 2 — Paste it here")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Color.white.opacity(0.7))
 
-                        Link("Get a free key →", destination: URL(string: "https://ai.google.dev")!)
-                            .font(.subheadline)
-                            .foregroundColor(Color.white.opacity(0.85))
+                        TextField("AIza...", text: $apiKey)
+                            .textFieldStyle(.plain)
+                            .font(.system(.body, design: .monospaced))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(10)
+                            .foregroundColor(.white)
+                            .onChange(of: apiKey) { _, newValue in
+                                let trimmed = newValue.trimmingCharacters(in: .whitespaces)
+                                if trimmed.count > 20 {
+                                    if KeychainHelper.shared.saveGeminiAPIKey(trimmed) {
+                                        apiKeySaved = true
+                                        saveError = nil
+                                    }
+                                }
+                            }
+
+                        if let error = saveError {
+                            Text(error).font(.caption).foregroundColor(Color.yellow)
+                        }
                     }
                 }
+                .frame(maxWidth: 380)
             }
-            .frame(maxWidth: 380)
-        }
-    }
-
-    private func saveKey() {
-        let trimmed = apiKey.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        isSaving = true
-        saveError = nil
-        let success = KeychainHelper.shared.saveGeminiAPIKey(trimmed)
-        isSaving = false
-        if success {
-            apiKeySaved = true
-            apiKey = ""
-        } else {
-            saveError = "Could not save key. Please try again."
         }
     }
 }
 
-// MARK: - Step 3: Ready
+// MARK: - Step 4: Ready
 
 private struct ReadyStep: View {
     var body: some View {
@@ -256,7 +336,7 @@ private struct ReadyStep: View {
             VStack(alignment: .leading, spacing: 12) {
                 InstructionRow(number: "1", text: "Create a class (we'll prompt you next)")
                 InstructionRow(number: "2", text: "Hit Record before your lecture starts")
-                InstructionRow(number: "3", text: "Grant microphone access when asked")
+                InstructionRow(number: "3", text: "Stop recording when done — notes generate automatically")
             }
             .padding(.top, 4)
         }
