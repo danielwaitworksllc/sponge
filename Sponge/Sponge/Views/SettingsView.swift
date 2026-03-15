@@ -311,98 +311,107 @@ private struct AboutTab: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Spacer(minLength: 16)
-
-                // App icon + name
-                VStack(spacing: 12) {
-                    Image(systemName: "waveform.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(SpongeTheme.coral)
-
-                    Text("Sponge")
-                        .font(.title.weight(.bold))
-
-                    Text(appVersion)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+        VStack(spacing: 0) {
+            // Compact action bar at top — always visible
+            HStack(spacing: 12) {
+                if let updater = updaterController {
+                    Button {
+                        updater.checkForUpdates(nil)
+                    } label: {
+                        Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
 
-                // About description
-                VStack(alignment: .leading, spacing: 12) {
+                ShareLink(
+                    item: URL(string: "https://github.com/danielwaitworksllc/sponge/releases/latest")!,
+                    subject: Text("Sponge — Lecture Recording & AI Notes"),
+                    message: Text("Check out Sponge — it records lectures, transcribes them in real time, and generates AI study notes. Free for Mac!")
+                ) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Link(destination: {
+                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+                    let subject = "Sponge Feedback (v\(version))"
+                    let body = "Hi Daniel,\n\nHere's my feedback on Sponge:\n\n[Write your feedback here]\n\n---\nVersion: \(version)"
+                    let encoded = "mailto:sponge@waitworks.com?subject=\(subject)&body=\(body)"
+                        .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                    return URL(string: encoded)!
+                }()) {
+                    Label("Feedback", systemImage: "envelope")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(SpongeTheme.coralPale.opacity(0.4))
+
+            Divider()
+
+            // Scrollable content below
+            ScrollView {
+
+                VStack(spacing: 24) {
+                    Spacer(minLength: 16)
+
+                    // App icon + name
+                    VStack(spacing: 12) {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 64))
+                            .foregroundStyle(SpongeTheme.coral)
+
+                        Text("Sponge")
+                            .font(.title.weight(.bold))
+
+                        Text(appVersion)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    // About description
                     Text("Sponge was built for students who want to focus on learning, not note-taking. It records your lectures, transcribes them in real time using on-device speech recognition, and then uses AI to generate organized study notes, summaries, and recall prompts — so you can absorb more and stress less.")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, 24)
+                        .padding(.horizontal, 24)
 
-                Divider()
-                    .padding(.horizontal, 40)
+                    Divider()
+                        .padding(.horizontal, 40)
 
-                // Credits
-                VStack(spacing: 6) {
-                    Text("Created by Daniel Wait")
-                        .font(.subheadline.weight(.medium))
-                    Link("Licensed under the MIT License",
-                         destination: URL(string: "https://github.com/danielwaitworksllc/sponge/blob/main/LICENSE")!)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("\u{00A9} 2025-2026 Daniel Wait Works LLC")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                // Actions
-                VStack(spacing: 10) {
-                    if let updater = updaterController {
-                        Button {
-                            updater.checkForUpdates(nil)
-                        } label: {
-                            Label("Check for Updates", systemImage: "arrow.triangle.2.circlepath")
-                                .frame(maxWidth: 220)
-                        }
-                        .buttonStyle(PrimaryButtonStyle(color: SpongeTheme.coral))
+                    // Credits
+                    VStack(spacing: 6) {
+                        Text("Created by Daniel Wait")
+                            .font(.subheadline.weight(.medium))
+                        Link("Licensed under the MIT License",
+                             destination: URL(string: "https://github.com/danielwaitworksllc/sponge/blob/main/LICENSE")!)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("\u{00A9} 2025-2026 Daniel Wait Works LLC")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                     Link(destination: URL(string: "https://github.com/danielwaitworksllc/sponge")!) {
                         Label("View on GitHub", systemImage: "link")
-                            .frame(maxWidth: 220)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
 
-                    ShareLink(
-                        item: URL(string: "https://github.com/danielwaitworksllc/sponge/releases/latest")!,
-                        subject: Text("Sponge — Lecture Recording & AI Notes"),
-                        message: Text("Check out Sponge — it records lectures, transcribes them in real time, and generates AI study notes. Free for Mac!")
-                    ) {
-                        Label("Share Sponge", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: 220)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
-
-                    Link(destination: {
-                        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-                        let subject = "Sponge Feedback (v\(version))"
-                        let body = "Hi Daniel,\n\nHere's my feedback on Sponge:\n\n[Write your feedback here]\n\n---\nVersion: \(version)"
-                        let encoded = "mailto:sponge@waitworks.com?subject=\(subject)&body=\(body)"
-                            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                        return URL(string: encoded)!
-                    }()) {
-                        Label("Send Feedback", systemImage: "envelope")
-                            .frame(maxWidth: 220)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
+                    Spacer(minLength: 16)
                 }
-
-                Spacer(minLength: 16)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
+            .background(SpongeTheme.coralPale.opacity(0.4))
         }
     }
 }
