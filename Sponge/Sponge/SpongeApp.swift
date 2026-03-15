@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Sparkle
+import TelemetryDeck
 
 @main
 struct SpongeApp: App {
@@ -15,6 +16,11 @@ struct SpongeApp: App {
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
+
+        var config = TelemetryDeck.Config(appID: "30F3FE98-DE23-4EB1-8391-34161BBEF509")
+        config.analyticsDisabled = false
+        TelemetryDeck.initialize(config: config)
+        TelemetryDeck.signal("appLaunched")
     }
 
     var body: some Scene {

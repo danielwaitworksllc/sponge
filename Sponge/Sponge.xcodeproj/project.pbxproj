@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		8A2B3B8D2F6340AC004A4971 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 8A2B3B8C2F6340AC004A4971 /* Sparkle */; };
+		8A4A3E622F67727700C6F60F /* TelemetryClient in Frameworks */ = {isa = PBXBuildFile; productRef = 8A4A3E612F67727700C6F60F /* TelemetryClient */; };
+		8A4A3E642F67727700C6F60F /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = 8A4A3E632F67727700C6F60F /* TelemetryDeck */; };
 		8A5048D72F33E39500EE01EC /* SharedAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5048D62F33E39500EE01EC /* SharedAudioManager.swift */; };
 		8AB8C5D12F59332900CE4D4F /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 8AB8C5D02F59332900CE4D4F /* WhisperKit */; };
 		A1000001207A0001 /* SpongeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002207A0001 /* SpongeApp.swift */; };
@@ -120,7 +122,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				8AB8C5D12F59332900CE4D4F /* WhisperKit in Frameworks */,
+				8A4A3E622F67727700C6F60F /* TelemetryClient in Frameworks */,
 				8A2B3B8D2F6340AC004A4971 /* Sparkle in Frameworks */,
+				8A4A3E642F67727700C6F60F /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,6 +348,7 @@
 			packageReferences = (
 				8AB8C5CF2F59332900CE4D4F /* XCRemoteSwiftPackageReference "WhisperKit" */,
 				8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				8A4A3E602F67727700C6F60F /* XCRemoteSwiftPackageReference "SwiftSDK" */,
 			);
 			productRefGroup = A1000023207A0001 /* Products */;
 			projectDirPath = "";
@@ -553,7 +558,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Sponge/Sponge.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 59;
 				DEVELOPMENT_TEAM = G8TSWK949Z;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -568,7 +573,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.ClassTranscriber;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -586,7 +591,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Sponge/Sponge.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 59;
 				DEVELOPMENT_TEAM = G8TSWK949Z;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -601,7 +606,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.ClassTranscriber;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -686,6 +691,14 @@
 				minimumVersion = 2.9.0;
 			};
 		};
+		8A4A3E602F67727700C6F60F /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.11.0;
+			};
+		};
 		8AB8C5CF2F59332900CE4D4F /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
@@ -701,6 +714,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 8A2B3B8B2F6340AC004A4971 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		8A4A3E612F67727700C6F60F /* TelemetryClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A4A3E602F67727700C6F60F /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryClient;
+		};
+		8A4A3E632F67727700C6F60F /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A4A3E602F67727700C6F60F /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryDeck;
 		};
 		8AB8C5D02F59332900CE4D4F /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;

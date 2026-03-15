@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import TelemetryDeck
 
 class RecordingViewModel: ObservableObject {
     @Published var isRecording: Bool = false
@@ -113,6 +114,8 @@ class RecordingViewModel: ObservableObject {
         }
 
         currentAudioURL = audioURL
+
+        TelemetryDeck.signal("recordingStarted")
 
         DispatchQueue.main.async {
             self.isRecording = true
@@ -482,6 +485,8 @@ class RecordingViewModel: ObservableObject {
             let enhancedSummary = try await enhancedSummaryTask
             let recallPrompts = try await recallPromptsTask
 
+            TelemetryDeck.signal("aiNotesGenerated")
+
             await MainActor.run {
                 recording.classNotes = classNotes
                 recording.enhancedSummary = enhancedSummary
@@ -604,6 +609,8 @@ class RecordingViewModel: ObservableObject {
         guard classModel.hasLocalFolder else {
             return
         }
+
+        TelemetryDeck.signal("pdfExported")
 
         // Capture values for background thread
         let className = classModel.name
