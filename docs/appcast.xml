@@ -6,7 +6,21 @@
         <description>Sponge app update feed</description>
         <language>en</language>
 
-                                                                                <item>
+                                                                                        <item>
+            <title>Version 2.3</title>
+            <pubDate>Sun, 15 Mar 2026 22:43:40 +0000</pubDate>
+            <sparkle:version>59</sparkle:version>
+            <sparkle:shortVersionString>2.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/danielwaitworksllc/sponge/releases/download/v2.3/Sponge-v2.3.zip"
+                sparkle:edSignature="EpOOfakWIWPy5IkqR0y4s9TCymXSuD6GQXU6QPCBB4j+e8tXtcFImc1Fn7ALGUbaXthni8lhEfM6LvD4OkuvAw=="
+                length="7251630"
+                type="application/octet-stream"
+            />
+        </item>
+
+<item>
             <title>Version 2.2</title>
             <pubDate>Fri, 13 Mar 2026 04:27:29 +0000</pubDate>
             <sparkle:version>55</sparkle:version>
