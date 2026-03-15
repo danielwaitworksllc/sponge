@@ -346,7 +346,8 @@ private struct AboutTab: View {
                 VStack(spacing: 6) {
                     Text("Created by Daniel Wait")
                         .font(.subheadline.weight(.medium))
-                    Text("Licensed under the MIT License")
+                    Link("Licensed under the MIT License",
+                         destination: URL(string: "https://github.com/danielwaitworksllc/sponge/blob/main/LICENSE")!)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Text("\u{00A9} 2025-2026 Daniel Wait Works LLC")
@@ -375,13 +376,13 @@ private struct AboutTab: View {
 
                     Link(destination: {
                         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-                        let subject = "Sponge Feedback"
-                        let body = "Hi Daniel,\n\nI'm using Sponge v\(version) and wanted to reach out.\n\n[Your message here]"
+                        let subject = "Sponge Feedback (v\(version))"
+                        let body = "Hi Daniel,\n\nHere's my feedback on Sponge:\n\n[Write your feedback here]\n\n---\nVersion: \(version)"
                         let encoded = "mailto:sponge@waitworks.com?subject=\(subject)&body=\(body)"
                             .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
                         return URL(string: encoded)!
                     }()) {
-                        Label("Contact Support", systemImage: "envelope")
+                        Label("Send Feedback", systemImage: "envelope")
                             .frame(maxWidth: 220)
                     }
                     .buttonStyle(.bordered)
