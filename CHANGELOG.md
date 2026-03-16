@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-03-15 (v2.6)
+Whisper transcription now runs automatically after every recording (auto-downloads model on first use). Removed manual Whisper button from recording detail view header. Simplified post-recording UI to just "Improve Transcript" and "Regenerate Notes" buttons.
+
 ## 2026-03-15 (v2.5)
 Added TelemetryDeck anonymous analytics, privacy policy page, redesigned About tab with compact action bar, Share Sponge button, Send Feedback button, and MIT license link. Renamed GitHub repo to "sponge" and unified install instructions across README and release pages.
 

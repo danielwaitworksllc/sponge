@@ -112,15 +112,6 @@ struct RecordingDetailView: View {
             } else {
                 HStack(spacing: SpongeTheme.spacingS) {
                     Button {
-                        Task { await viewModel.retranscribeWithWhisper(for: recording) }
-                    } label: {
-                        Label("Whisper", systemImage: "waveform.badge.magnifyingglass")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(recording.audioFileURL() == nil)
-                    .help("Re-transcribe audio on-device using Whisper for higher accuracy")
-
-                    Button {
                         Task { await viewModel.improveTranscriptWithGemini(for: recording) }
                     } label: {
                         Label("Improve Transcript", systemImage: "sparkles")

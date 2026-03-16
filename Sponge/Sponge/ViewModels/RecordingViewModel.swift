@@ -319,16 +319,15 @@ class RecordingViewModel: ObservableObject {
     @MainActor
     private func runOfflineTranscriptUpgrade(for recording: SDRecording, audioURL: URL) async {
         isImprovingTranscript = true
-        toastMessage = ToastMessage(message: "Refining transcript with Whisper...", icon: "waveform.badge.magnifyingglass", type: .info)
+
+        let whisperService = WhisperKitService.shared
+        if !whisperService.modelReady {
+            toastMessage = ToastMessage(message: "Downloading Whisper model (~600MB, first time only)...", icon: "arrow.down.circle", type: .info)
+        } else {
+            toastMessage = ToastMessage(message: "Refining transcript with Whisper...", icon: "waveform.badge.magnifyingglass", type: .info)
+        }
 
         do {
-            let whisperService = WhisperKitService.shared
-            // Only use Whisper automatically if the model is already cached.
-            // If not ready, fall through to the Apple offline pass immediately —
-            // the user can trigger Whisper manually from the detail view once downloaded.
-            guard whisperService.modelReady else {
-                throw WhisperKitService.TranscriptionError.modelNotLoaded
-            }
             let (offlineTranscript, segments) = try await whisperService.transcribe(audioURL: audioURL)
             let existingWordCount = recording.transcriptText.split(separator: " ").count
             let offlineWordCount = offlineTranscript.split(separator: " ").count
@@ -339,20 +338,8 @@ class RecordingViewModel: ObservableObject {
                 toastMessage = ToastMessage(message: "Transcript refined — generating notes...", icon: "checkmark.circle", type: .success)
             }
         } catch {
-            print("WhisperKit offline pass failed, falling back to Apple offline pass: \(error.localizedDescription)")
-            // Fall back to Apple SpeechAnalyzer offline pass
-            do {
-                let offlineTranscript = try await transcriptionService.transcribeAudioFile(url: audioURL)
-                let existingWordCount = recording.transcriptText.split(separator: " ").count
-                let offlineWordCount = offlineTranscript.split(separator: " ").count
-                let isSubstantial = existingWordCount == 0 || Double(offlineWordCount) >= Double(existingWordCount) * 0.7
-                if !offlineTranscript.isEmpty && isSubstantial {
-                    recording.transcriptText = offlineTranscript
-                    toastMessage = ToastMessage(message: "Transcript refined — generating notes...", icon: "checkmark.circle", type: .success)
-                }
-            } catch {
-                print("Offline transcript upgrade failed (non-fatal): \(error.localizedDescription)")
-            }
+            print("Whisper offline transcription failed (non-fatal): \(error.localizedDescription)")
+            toastMessage = ToastMessage(message: "Whisper transcription failed — using live transcript", icon: "exclamationmark.triangle", type: .error)
         }
 
         isImprovingTranscript = false
