@@ -93,8 +93,8 @@ struct RecordingView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(6)
+                    .background(SpongeTheme.subtleFill)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
                 }
                 .menuStyle(.borderlessButton)
                 .help("Change class")
@@ -129,8 +129,8 @@ struct RecordingView: View {
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(4)
+                    .background(SpongeTheme.subtleFill)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
 
                 // Word count
                 Text("\(wordCount) words")
@@ -138,8 +138,8 @@ struct RecordingView: View {
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(4)
+                    .background(SpongeTheme.subtleFill)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
 
                 // "What did I miss" button
                 Button {
@@ -204,7 +204,7 @@ struct RecordingView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color.secondary.opacity(0.05))
+            .background(SpongeTheme.subtleBackground)
 
             Divider()
 
@@ -242,11 +242,11 @@ struct RecordingView: View {
             }
         }
         .frame(height: showFullTranscript ? 200 : 100)
-        .background(Color.secondaryBackground)
-        .cornerRadius(10)
+        .background(SpongeTheme.surfacePrimary)
+        .cornerRadius(SpongeTheme.cornerRadiusM)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(recordingViewModel.isPaused ? Color.secondary.opacity(0.2) : Color.red.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                .stroke(recordingViewModel.isPaused ? SpongeTheme.subtleBorder : SpongeTheme.coral.opacity(0.3), lineWidth: 1)
         )
     }
 
@@ -265,9 +265,9 @@ struct RecordingView: View {
                 Image(systemName: recordingViewModel.isPaused ? "play.fill" : "pause.fill")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
+                    .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
                     .background(SpongeTheme.coral)
-                    .cornerRadius(6)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
             }
             .buttonStyle(.plain)
             .help(recordingViewModel.isPaused ? "Resume" : "Pause")
@@ -285,9 +285,9 @@ struct RecordingView: View {
                 Image(systemName: "stop.fill")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
-                    .frame(width: 28, height: 28)
+                    .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
                     .background(Color.red)
-                    .cornerRadius(6)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
             }
             .buttonStyle(.plain)
             .help("Stop Recording")
@@ -308,9 +308,9 @@ struct RecordingView: View {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.secondary)
-                    .frame(width: 24, height: 24)
-                    .background(Color.secondary.opacity(0.15))
-                    .cornerRadius(5)
+                    .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
+                    .background(SpongeTheme.subtleBorder)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
             }
             .buttonStyle(.plain)
             .help("Back")
@@ -330,9 +330,9 @@ struct RecordingView: View {
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 10)
-                .frame(height: 24)
+                .frame(height: SpongeTheme.controlSizeS)
                 .background(SpongeTheme.coral)
-                .cornerRadius(5)
+                .cornerRadius(SpongeTheme.cornerRadiusXS)
             }
             .buttonStyle(.plain)
             .help("Save Recording")
@@ -345,9 +345,9 @@ struct RecordingView: View {
                 Image(systemName: "trash")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.red)
-                    .frame(width: 24, height: 24)
+                    .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
                     .background(Color.red.opacity(0.15))
-                    .cornerRadius(5)
+                    .cornerRadius(SpongeTheme.cornerRadiusXS)
             }
             .buttonStyle(.plain)
             .help("Discard")
@@ -559,7 +559,7 @@ struct ExpandingMarkdownNotesEditor: View {
             formattingToolbar
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.secondary.opacity(0.03))
+                .background(SpongeTheme.subtleBackground)
 
             Divider()
 
@@ -568,11 +568,11 @@ struct ExpandingMarkdownNotesEditor: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.secondaryBackground)
-        .cornerRadius(10)
+        .background(SpongeTheme.surfacePrimary)
+        .cornerRadius(SpongeTheme.cornerRadiusM)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
         )
     }
 
@@ -621,12 +621,12 @@ struct ExpandingMarkdownNotesEditor: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(4)
+                .background(SpongeTheme.subtleFill)
+                .cornerRadius(SpongeTheme.cornerRadiusXS)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.secondary.opacity(0.05))
+        .background(SpongeTheme.subtleBackground)
         .onChange(of: text) { _, _ in
             triggerSave()
         }
@@ -853,8 +853,8 @@ struct CompactRecordingBar: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(4)
+                .background(SpongeTheme.subtleFill)
+                .cornerRadius(SpongeTheme.cornerRadiusXS)
 
             Spacer()
 
@@ -868,9 +868,9 @@ struct CompactRecordingBar: View {
                         Image(systemName: "arrow.uturn.backward")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.secondary)
-                            .frame(width: 26, height: 26)
-                            .background(Color.secondary.opacity(0.15))
-                            .cornerRadius(6)
+                            .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
+                            .background(SpongeTheme.subtleBorder)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
 
@@ -888,9 +888,9 @@ struct CompactRecordingBar: View {
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
-                        .frame(height: 26)
+                        .frame(height: SpongeTheme.controlSizeS)
                         .background(SpongeTheme.coral)
-                        .cornerRadius(6)
+                        .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
 
@@ -901,9 +901,9 @@ struct CompactRecordingBar: View {
                         Image(systemName: "trash")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.red)
-                            .frame(width: 26, height: 26)
+                            .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
                             .background(Color.red.opacity(0.15))
-                            .cornerRadius(6)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
                 }
@@ -920,9 +920,9 @@ struct CompactRecordingBar: View {
                         }
                         .foregroundColor(SpongeTheme.coral)
                         .padding(.horizontal, 8)
-                        .frame(height: 26)
+                        .frame(height: SpongeTheme.controlSizeS)
                         .background(SpongeTheme.coral.opacity(0.12))
-                        .cornerRadius(6)
+                        .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
                     .help("Expand to see transcript and notes")
@@ -938,9 +938,9 @@ struct CompactRecordingBar: View {
                         Image(systemName: recordingViewModel.isPaused ? "play.fill" : "pause.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 26, height: 26)
+                            .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
                             .background(SpongeTheme.coral)
-                            .cornerRadius(6)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
 
@@ -954,9 +954,9 @@ struct CompactRecordingBar: View {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 26, height: 26)
+                            .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
                             .background(Color.red)
-                            .cornerRadius(6)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
                 }
@@ -973,13 +973,6 @@ struct CompactRecordingBar: View {
     }
 }
 
-// MARK: - Color Extension
-
-extension Color {
-    static var secondarySystemBackground: Color {
-        Color(NSColor.controlBackgroundColor)
-    }
-}
 
 #Preview {
     RecordingView(recordingViewModel: RecordingViewModel())

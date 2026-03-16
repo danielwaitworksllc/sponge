@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-03-15
+UI/UX overhaul: cleaned up design system (consolidated tokens, removed dead code, centralized Color extensions), redesigned RecordingDetailView with clearer tab pills and bottom action bar, swept all views to use theme tokens consistently, added swiftUIColor to IntentMarkerType, deleted backup files.
+
 ## 2026-03-15 (v2.6)
 Whisper transcription now runs automatically after every recording (auto-downloads model on first use). Removed manual Whisper button from recording detail view header. Simplified post-recording UI to just "Improve Transcript" and "Regenerate Notes" buttons.
 

@@ -47,12 +47,16 @@ struct RecordingDetailView: View {
             // Segmented control
             segmentedControl
 
+            // Spacing between tab bar and content
             Divider()
 
             // Content
             tabContent
+
+            // Bottom actions bar
+            actionsBar
         }
-        .background(SpongeTheme.coralPale.opacity(0.4))
+        .background(SpongeTheme.surfaceSecondary)
         .frame(minWidth: 600, minHeight: 500)
         .onAppear {
             if !hasSeenTour {
@@ -78,12 +82,15 @@ struct RecordingDetailView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(recording.name)
                     .font(.headline)
 
                 HStack(spacing: SpongeTheme.spacingS) {
+                    if !className.isEmpty {
+                        Label(className, systemImage: "folder")
+                    }
                     Label(recording.formattedDuration, systemImage: "clock")
                     Label(recording.formattedDate, systemImage: "calendar")
                 }
@@ -93,44 +100,6 @@ struct RecordingDetailView: View {
 
             Spacer()
 
-            if whisperKit.isDownloadingModel {
-                HStack(spacing: SpongeTheme.spacingS) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                    Text("Downloading Whisper model…")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            } else if viewModel.isGeneratingNotes || viewModel.isImprovingTranscript {
-                HStack(spacing: SpongeTheme.spacingS) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                    Text(viewModel.isImprovingTranscript ? "Improving transcript..." : "Regenerating...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                HStack(spacing: SpongeTheme.spacingS) {
-                    Button {
-                        Task { await viewModel.improveTranscriptWithGemini(for: recording) }
-                    } label: {
-                        Label("Improve Transcript", systemImage: "sparkles")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(recording.audioFileURL() == nil)
-                    .help("Upload audio to Gemini AI for a higher-quality transcript with punctuation and speaker labels (~$0.07/hr)")
-
-                    Button {
-                        Task { await viewModel.regenerateAIContent(for: recording) }
-                    } label: {
-                        Label("Regenerate Notes", systemImage: "arrow.clockwise.circle")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(recording.transcriptText.isEmpty)
-                    .help(recording.transcriptText.isEmpty ? "No transcript available" : "Regenerate AI notes, summaries, and recall prompts")
-                }
-            }
-
             Button("Done") {
                 dismiss()
             }
@@ -138,7 +107,7 @@ struct RecordingDetailView: View {
             .tint(SpongeTheme.coral)
         }
         .padding(SpongeTheme.spacingM)
-        .background(SpongeTheme.cream)
+        .background(SpongeTheme.surfaceSecondary)
     }
 
     // MARK: - Whisper Download Banner
@@ -158,7 +127,7 @@ struct RecordingDetailView: View {
         }
         .padding(.horizontal, SpongeTheme.spacingM)
         .padding(.vertical, SpongeTheme.spacingS)
-        .background(SpongeTheme.coralPale.opacity(0.5))
+        .background(SpongeTheme.coral.opacity(0.08))
     }
 
     // MARK: - Segmented Control
@@ -176,6 +145,7 @@ struct RecordingDetailView: View {
         }
         .padding(.horizontal, SpongeTheme.spacingM)
         .padding(.vertical, SpongeTheme.spacingS)
+        .background(SpongeTheme.surfaceSecondary)
     }
 
     // MARK: - Tab Content
@@ -192,6 +162,70 @@ struct RecordingDetailView: View {
         case .markers:
             markersView
         }
+    }
+
+    // MARK: - Bottom Actions Bar
+
+    private var actionsBar: some View {
+        HStack(spacing: SpongeTheme.spacingM) {
+            if viewModel.isImprovingTranscript {
+                HStack(spacing: SpongeTheme.spacingS) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Re-transcribing with Whisper…")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                Button {
+                    Task { await viewModel.retranscribeWithWhisper(for: recording) }
+                } label: {
+                    Label("Re-transcribe", systemImage: "waveform.badge.magnifyingglass")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(recording.audioFileURL() == nil ? .secondary.opacity(0.5) : SpongeTheme.coral)
+                .disabled(recording.audioFileURL() == nil)
+                .help("Run Whisper on the audio for a higher-quality transcript (on-device, free)")
+            }
+
+            Divider()
+                .frame(height: 16)
+
+            if viewModel.isGeneratingNotes {
+                HStack(spacing: SpongeTheme.spacingS) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Regenerating notes…")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                Button {
+                    Task { await viewModel.regenerateAIContent(for: recording) }
+                } label: {
+                    Label("Regenerate Notes", systemImage: "arrow.clockwise.circle")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(recording.transcriptText.isEmpty ? .secondary.opacity(0.5) : .secondary)
+                .disabled(recording.transcriptText.isEmpty)
+                .help(recording.transcriptText.isEmpty ? "No transcript available" : "Regenerate AI notes, summaries, and recall prompts")
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, SpongeTheme.spacingM)
+        .padding(.vertical, SpongeTheme.spacingS)
+        .background(
+            SpongeTheme.surfaceSecondary
+                .overlay(
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(SpongeTheme.divider),
+                    alignment: .top
+                )
+        )
     }
 
     // MARK: - Transcript View
@@ -220,8 +254,11 @@ struct RecordingDetailView: View {
                     .padding(SpongeTheme.spacingM)
                     .background(
                         RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
-                            .fill(SpongeTheme.cream)
-                            .shadow(color: SpongeTheme.shadowS, radius: 4, x: 0, y: 2)
+                            .fill(SpongeTheme.surfacePrimary)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                            .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
                     )
                 } else {
                     emptyState(
@@ -248,8 +285,11 @@ struct RecordingDetailView: View {
                     .padding(SpongeTheme.spacingM)
                     .background(
                         RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
-                            .fill(SpongeTheme.cream)
-                            .shadow(color: SpongeTheme.shadowS, radius: 4, x: 0, y: 2)
+                            .fill(SpongeTheme.surfacePrimary)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                            .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
                     )
                 }
             }
@@ -364,9 +404,9 @@ private struct TabSegmentButton: View {
         Button(action: onTap) {
             HStack(spacing: 4) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                 Text(tab.rawValue)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
 
                 if let count = badgeCount {
                     Text("\(count)")
@@ -378,11 +418,11 @@ private struct TabSegmentButton: View {
                 }
             }
             .foregroundColor(isSelected ? SpongeTheme.coral : .secondary)
-            .padding(.horizontal, SpongeTheme.spacingS)
-            .padding(.vertical, SpongeTheme.spacingXS)
+            .padding(.horizontal, SpongeTheme.spacingM)
+            .padding(.vertical, SpongeTheme.spacingS)
             .background(
                 RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusS)
-                    .fill(isSelected ? SpongeTheme.coral.opacity(0.1) : Color.clear)
+                    .fill(isSelected ? SpongeTheme.coral.opacity(0.15) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -404,7 +444,7 @@ private struct MarkerTimelineRow: View {
 
                 // Type indicator
                 Circle()
-                    .fill(markerColor)
+                    .fill(marker.type.swiftUIColor)
                     .frame(width: 10, height: 10)
                     .padding(.top, 4)
 
@@ -416,7 +456,7 @@ private struct MarkerTimelineRow: View {
                         Text(marker.type.displayName)
                             .font(.subheadline.weight(.medium))
                     }
-                    .foregroundColor(markerColor)
+                    .foregroundColor(marker.type.swiftUIColor)
 
                     if let snapshot = marker.transcriptSnapshot {
                         Text("\"...\(snapshot)...\"")
@@ -442,20 +482,11 @@ private struct MarkerTimelineRow: View {
                 .fill(Color.primaryBackground.opacity(0.001))
         )
         .onHover { isHovered in
-            NSCursor.pointingHand.push()
-        }
-    }
-
-    private var markerColor: Color {
-        switch marker.type {
-        case .confused:
-            return .orange
-        case .important:
-            return .red
-        case .examRelevant:
-            return .yellow
-        case .reviewLater:
-            return .blue
+            if isHovered {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
         }
     }
 }
@@ -471,26 +502,13 @@ private struct MarkerCountBadge: View {
             Text("\(count)")
                 .font(.system(size: 12, weight: .bold))
         }
-        .foregroundColor(badgeColor)
+        .foregroundColor(type.swiftUIColor)
         .padding(.horizontal, SpongeTheme.spacingS)
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(badgeColor.opacity(0.15))
+                .fill(type.swiftUIColor.opacity(0.15))
         )
-    }
-
-    private var badgeColor: Color {
-        switch type {
-        case .confused:
-            return .orange
-        case .important:
-            return .red
-        case .examRelevant:
-            return .yellow
-        case .reviewLater:
-            return .blue
-        }
     }
 }
 
@@ -509,10 +527,10 @@ private struct MarkerContextSheet: View {
                     HStack(spacing: 8) {
                         Image(systemName: marker.type.icon)
                             .font(.headline)
-                            .foregroundColor(markerColor)
+                            .foregroundColor(marker.type.swiftUIColor)
                         Text(marker.type.displayName)
                             .font(.headline)
-                            .foregroundColor(markerColor)
+                            .foregroundColor(marker.type.swiftUIColor)
                     }
 
                     Text("at \(marker.formattedTimestamp)")
@@ -551,7 +569,7 @@ private struct MarkerContextSheet: View {
                                 .padding(SpongeTheme.spacingS)
                                 .background(
                                     RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusS)
-                                        .fill(markerColor.opacity(0.15))
+                                        .fill(SpongeTheme.iconBoxFill(marker.type.swiftUIColor))
                                 )
                                 .lineSpacing(4)
                         }
@@ -577,7 +595,7 @@ private struct MarkerContextSheet: View {
                                     .padding(SpongeTheme.spacingS)
                                     .background(
                                         RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusS)
-                                            .fill(markerColor.opacity(0.15))
+                                            .fill(SpongeTheme.iconBoxFill(marker.type.swiftUIColor))
                                     )
                             }
 
@@ -591,19 +609,6 @@ private struct MarkerContextSheet: View {
             }
         }
         .frame(minWidth: 500, minHeight: 400)
-    }
-
-    private var markerColor: Color {
-        switch marker.type {
-        case .confused:
-            return .orange
-        case .important:
-            return .red
-        case .examRelevant:
-            return .yellow
-        case .reviewLater:
-            return .blue
-        }
     }
 
     /// Extracts context around the marker from the full transcript
@@ -648,7 +653,7 @@ struct AIFeaturesTourView: View {
         ("doc.richtext", SpongeTheme.coral, "Summaries", "Three AI-generated summaries of your lecture: a general overview, a confusion-focused recap, and an exam-oriented breakdown."),
         ("brain.head.profile", .purple, "Recall", "Flashcard-style questions generated from your lecture to help you study with spaced repetition."),
         ("flag.fill", .orange, "Markers", "Moments you flagged during the recording — confusion, important points, exam-relevant content — with full transcript context."),
-        ("sparkles", SpongeTheme.coral, "Improve Transcript", "Use Gemini AI to improve punctuation, fix errors, and add speaker labels to your raw transcript."),
+        ("waveform.badge.magnifyingglass", SpongeTheme.coral, "Re-transcribe", "Run Whisper on your audio for a higher-quality transcript — fully on-device and free."),
     ]
 
     var body: some View {

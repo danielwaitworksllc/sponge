@@ -15,7 +15,7 @@ struct ClassManagementView: View {
                     classList
                 }
             }
-            .background(SpongeTheme.coralPale.opacity(0.4))
+            .background(SpongeTheme.surfaceSecondary)
             .navigationTitle("Manage Classes")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -109,9 +109,9 @@ struct ClassRowView: View {
         HStack(spacing: 12) {
             // Class icon
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(statusColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                    .fill(SpongeTheme.iconBoxFill(statusColor))
+                    .frame(width: SpongeTheme.controlSizeL, height: SpongeTheme.controlSizeL)
 
                 Image(systemName: "folder.fill")
                     .font(.system(size: 18))
@@ -152,7 +152,7 @@ struct ClassRowView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, SpongeTheme.spacingS)
         .contentShape(Rectangle())
         .onTapGesture {
             onEdit()

@@ -24,7 +24,7 @@ struct SettingsView: View {
                     .tabItem { Label("About", systemImage: "info.circle") }
             }
             .padding(20)
-            .background(SpongeTheme.coralPale.opacity(0.4))
+            .background(SpongeTheme.surfaceSecondary)
             .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -83,6 +83,7 @@ private struct AINotesTab: View {
     @AppStorage("generateRecallPrompts") private var generateRecallPrompts = true
     @AppStorage("noteStyle") private var noteStyleRaw: String = NoteStyle.detailed.rawValue
     @AppStorage("summaryLength") private var summaryLengthRaw: String = SummaryLength.comprehensive.rawValue
+    @AppStorage("geminiModel") private var geminiModelRaw: String = GeminiModel.flash.rawValue
     @State private var geminiAPIKey: String = ""
     @State private var showingAPIKeyAlert = false
 
@@ -92,6 +93,10 @@ private struct AINotesTab: View {
 
     private var summaryLength: SummaryLength {
         SummaryLength(rawValue: summaryLengthRaw) ?? .comprehensive
+    }
+
+    private var geminiModel: GeminiModel {
+        GeminiModel(rawValue: geminiModelRaw) ?? .flash
     }
 
     var body: some View {
@@ -353,7 +358,7 @@ private struct AboutTab: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .background(SpongeTheme.coralPale.opacity(0.4))
+            .background(SpongeTheme.surfaceSecondary)
 
             Divider()
 
@@ -412,7 +417,7 @@ private struct AboutTab: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .background(SpongeTheme.coralPale.opacity(0.4))
+            .background(SpongeTheme.surfaceSecondary)
         }
     }
 }
@@ -440,13 +445,12 @@ struct SettingsSection<Content: View>: View {
                 content
                     .padding(16)
             }
-            .background(SpongeTheme.cream)
+            .background(SpongeTheme.surfacePrimary)
             .cornerRadius(SpongeTheme.cornerRadiusM)
             .overlay(
                 RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
-                    .stroke(SpongeTheme.coral.opacity(0.2), lineWidth: 1.5)
+                    .stroke(SpongeTheme.subtleBorder, lineWidth: 1.5)
             )
-            .shadow(color: SpongeTheme.shadowS, radius: 2, x: 0, y: 1)
         }
     }
 }
@@ -462,9 +466,9 @@ struct SettingRow<Accessory: View>: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             ZStack {
-                Circle()
-                    .fill(SpongeTheme.coral.opacity(0.15))
-                    .frame(width: 36, height: 36)
+                RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                    .fill(SpongeTheme.iconBoxFill(SpongeTheme.coral))
+                    .frame(width: SpongeTheme.controlSizeL, height: SpongeTheme.controlSizeL)
                 Image(systemName: icon)
                     .font(.body)
                     .foregroundColor(SpongeTheme.coral)
@@ -507,7 +511,7 @@ struct InfoBox: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(color.opacity(0.1))
-        .cornerRadius(8)
+        .cornerRadius(SpongeTheme.cornerRadiusM)
     }
 }
 

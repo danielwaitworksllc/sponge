@@ -67,33 +67,20 @@ private struct MarkerButton: View {
             VStack(spacing: 2) {
                 Image(systemName: type.icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(buttonColor)
+                    .foregroundColor(type.swiftUIColor)
 
                 Text(type.displayName)
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(buttonColor.opacity(0.8))
+                    .foregroundColor(type.swiftUIColor.opacity(0.8))
             }
             .frame(width: 50, height: 44)
             .background(
                 RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusS)
-                    .fill(isHighlighted ? buttonColor.opacity(0.15) : Color.clear)
+                    .fill(isHighlighted ? type.swiftUIColor.opacity(0.15) : Color.clear)
             )
             .scaleEffect(isHighlighted ? 1.1 : 1.0)
         }
         .buttonStyle(.plain)
-    }
-
-    private var buttonColor: Color {
-        switch type {
-        case .confused:
-            return .orange
-        case .important:
-            return .red
-        case .examRelevant:
-            return .yellow
-        case .reviewLater:
-            return .blue
-        }
     }
 }
 
@@ -112,22 +99,9 @@ private struct RecentMarkerBadge: View {
         .padding(.vertical, 3)
         .background(
             Capsule()
-                .fill(badgeColor.opacity(0.15))
+                .fill(marker.type.swiftUIColor.opacity(0.15))
         )
-        .foregroundColor(badgeColor)
-    }
-
-    private var badgeColor: Color {
-        switch marker.type {
-        case .confused:
-            return .orange
-        case .important:
-            return .red
-        case .examRelevant:
-            return .yellow
-        case .reviewLater:
-            return .blue
-        }
+        .foregroundColor(marker.type.swiftUIColor)
     }
 }
 

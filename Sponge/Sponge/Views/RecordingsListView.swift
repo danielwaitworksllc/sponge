@@ -28,8 +28,8 @@ struct RecordingsListView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(4)
+                            .background(SpongeTheme.subtleFill)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
 
                     Spacer()
@@ -45,10 +45,10 @@ struct RecordingsListView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(SpongeTheme.cream)
+            .background(SpongeTheme.surfaceSecondary)
             .overlay(
                 Rectangle()
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(SpongeTheme.divider)
                     .frame(height: 1),
                 alignment: .bottom
             )
@@ -76,7 +76,7 @@ struct RecordingsListView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .background(SpongeTheme.cream)
+                    .background(SpongeTheme.surfaceSecondary)
                 }
             }
         }
@@ -135,13 +135,9 @@ struct RecordingRowView: View {
             HStack(spacing: 12) {
                 // Icon
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(SpongeTheme.cream)
+                    RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                        .fill(SpongeTheme.iconBoxFill(SpongeTheme.coral))
                         .frame(width: 40, height: 40)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(SpongeTheme.coral.opacity(0.3), lineWidth: 1.5)
-                        )
 
                     Image(systemName: "doc.text")
                         .font(.system(size: 16))
@@ -163,12 +159,8 @@ struct RecordingRowView: View {
                             .foregroundColor(SpongeTheme.coral)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(SpongeTheme.cream)
-                            .cornerRadius(4)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .stroke(SpongeTheme.coral.opacity(0.3), lineWidth: 1)
-                            )
+                            .background(SpongeTheme.coral.opacity(0.12))
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
 
                     HStack(spacing: 6) {
@@ -194,7 +186,7 @@ struct RecordingRowView: View {
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)
                             .background(Color.orange.opacity(0.15))
-                            .cornerRadius(4)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                         }
 
                         // Recall questions badge
@@ -209,7 +201,7 @@ struct RecordingRowView: View {
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)
                             .background(Color.purple.opacity(0.15))
-                            .cornerRadius(4)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                         }
 
                         Spacer()
@@ -230,9 +222,9 @@ struct RecordingRowView: View {
                             Image(systemName: "folder")
                                 .font(.system(size: 14))
                                 .foregroundColor(.blue)
-                                .frame(width: 32, height: 32)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(6)
+                                .frame(width: SpongeTheme.controlSizeM, height: SpongeTheme.controlSizeM)
+                                .background(SpongeTheme.subtleFill)
+                                .cornerRadius(SpongeTheme.cornerRadiusXS)
                         }
                         .buttonStyle(.plain)
                         .help("Show PDF in Finder")
@@ -245,16 +237,16 @@ struct RecordingRowView: View {
                         Image(systemName: "trash")
                             .font(.system(size: 14))
                             .foregroundColor(.red)
-                            .frame(width: 32, height: 32)
+                            .frame(width: SpongeTheme.controlSizeM, height: SpongeTheme.controlSizeM)
                             .background(Color.red.opacity(0.1))
-                            .cornerRadius(6)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
                     .help("Delete recording")
                 }
             }
             .padding(.vertical, 12)
-            .padding(.horizontal, 4)
+            .padding(.horizontal, SpongeTheme.spacingS)
         }
         .buttonStyle(.plain)
         .confirmationDialog("Delete Recording?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
@@ -389,7 +381,7 @@ struct TranscriptDetailView: View {
                         }
                     }
                     .padding(16)
-                    .background(Color.secondaryBackground)
+                    .background(SpongeTheme.surfacePrimary)
                     .cornerRadius(12)
 
                     // Transcript
@@ -406,7 +398,7 @@ struct TranscriptDetailView: View {
                 }
                 .padding(20)
             }
-            .background(Color.primaryBackground)
+            .background(SpongeTheme.surfaceSecondary)
             .navigationTitle(recording.name)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -26,17 +26,17 @@ struct MarkdownNotesEditor: View {
             formattingToolbar
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color.secondary.opacity(0.03))
+                .background(SpongeTheme.subtleBackground)
             Divider()
             LiveMarkdownEditor(text: $text)
                 .frame(height: editorHeight)
             resizeHandle
         }
-        .background(Color.secondaryBackground)
-        .cornerRadius(12)
+        .background(SpongeTheme.surfacePrimary)
+        .cornerRadius(SpongeTheme.cornerRadiusM)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
         )
     }
 
@@ -56,12 +56,12 @@ struct MarkdownNotesEditor: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(4)
+                .background(SpongeTheme.subtleFill)
+                .cornerRadius(SpongeTheme.cornerRadiusXS)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.secondary.opacity(0.05))
+        .background(SpongeTheme.subtleBackground)
     }
 
     private var formattingToolbar: some View {
@@ -139,13 +139,13 @@ struct MarkdownNotesEditor: View {
         HStack {
             Spacer()
             Rectangle()
-                .fill(Color.secondary.opacity(isDragging ? 0.4 : 0.2))
+                .fill(SpongeTheme.coral.opacity(isDragging ? 0.4 : 0.2))
                 .frame(width: 40, height: 4)
                 .cornerRadius(2)
             Spacer()
         }
         .frame(height: 16)
-        .background(Color.secondary.opacity(0.03))
+        .background(SpongeTheme.subtleBackground)
         .contentShape(Rectangle())
         .gesture(
             DragGesture()
@@ -199,9 +199,9 @@ struct FormatButtonWithLabel: View {
             Text(label)
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundColor(.primary.opacity(0.7))
-                .frame(width: 28, height: 28)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(6)
+                .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
+                .background(SpongeTheme.subtleFill)
+                .cornerRadius(SpongeTheme.cornerRadiusXS)
         }
         .buttonStyle(.plain)
         .help(tooltip)
@@ -220,9 +220,9 @@ struct FormatButton: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.primary.opacity(0.7))
-                .frame(width: 28, height: 28)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(6)
+                .frame(width: SpongeTheme.controlSizeS, height: SpongeTheme.controlSizeS)
+                .background(SpongeTheme.subtleFill)
+                .cornerRadius(SpongeTheme.cornerRadiusXS)
         }
         .buttonStyle(.plain)
         .help(tooltip)

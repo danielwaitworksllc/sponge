@@ -59,7 +59,7 @@ struct ContentView: View {
                     // Recordings list — hidden when full recording view is active
                     if !(recordingViewModel.isRecording && showFullRecordingView) {
                         Rectangle()
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(SpongeTheme.divider)
                             .frame(height: 1)
 
                         RecordingsListView(isCollapsed: $recordingsCollapsed)
@@ -142,21 +142,6 @@ struct ContentView: View {
 
 }
 
-// MARK: - Color Extensions
-
-extension Color {
-    static var primaryBackground: Color {
-        Color(NSColor.windowBackgroundColor)
-    }
-
-    static var secondaryBackground: Color {
-        Color(NSColor.controlBackgroundColor)
-    }
-
-    static var tertiaryBackground: Color {
-        Color(NSColor.textBackgroundColor)
-    }
-}
 
 #Preview {
     ContentView(updaterController: nil)

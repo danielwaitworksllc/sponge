@@ -54,7 +54,7 @@ struct ClassEditorView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(SpongeTheme.coralPale.opacity(0.4))
+            .background(SpongeTheme.surfaceSecondary)
             .navigationTitle(isEditing ? "Edit Class" : "New Class")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -94,10 +94,10 @@ struct ClassEditorView: View {
                         Text(day.label)
                             .font(.caption)
                             .fontWeight(isOn ? .semibold : .regular)
-                            .frame(width: 36, height: 28)
+                            .frame(width: 40, height: SpongeTheme.controlSizeS)
                             .background(isOn ? SpongeTheme.coral : SpongeTheme.cream)
                             .foregroundColor(isOn ? .white : .primary)
-                            .cornerRadius(6)
+                            .cornerRadius(SpongeTheme.cornerRadiusXS)
                     }
                     .buttonStyle(.plain)
                 }

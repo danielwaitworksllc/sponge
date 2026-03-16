@@ -296,8 +296,11 @@ private struct QuestionRow: View {
         .padding(SpongeTheme.spacingM)
         .background(
             RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusS)
-                .fill(Color.primaryBackground)
-                .shadow(color: SpongeTheme.shadowS, radius: 2, x: 0, y: 1)
+                .fill(SpongeTheme.surfacePrimary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusS)
+                .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
         )
     }
 }
@@ -358,11 +361,14 @@ private struct FlashcardView: View {
                 .foregroundColor(.secondary)
         }
         .padding(SpongeTheme.spacingL)
-        .frame(maxWidth: .infinity, maxHeight: 300)
+        .frame(maxWidth: .infinity, maxHeight: 350)
         .background(
             RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusL)
-                .fill(Color.primaryBackground)
-                .shadow(color: SpongeTheme.shadowM, radius: 8, x: 0, y: 4)
+                .fill(SpongeTheme.surfacePrimary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusL)
+                .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
         )
     }
 
@@ -395,11 +401,14 @@ private struct FlashcardView: View {
                 .foregroundColor(.secondary)
         }
         .padding(SpongeTheme.spacingL)
-        .frame(maxWidth: .infinity, maxHeight: 300)
+        .frame(maxWidth: .infinity, maxHeight: 350)
         .background(
             RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusL)
-                .fill(SpongeTheme.coral.opacity(0.1))
-                .shadow(color: SpongeTheme.shadowM, radius: 8, x: 0, y: 4)
+                .fill(SpongeTheme.coral.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusL)
+                .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
         )
     }
 }

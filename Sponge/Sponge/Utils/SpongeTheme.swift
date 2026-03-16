@@ -23,11 +23,33 @@ struct SpongeTheme {
     /// Cream color - secondary accent
     static let cream = Color(red: 252/255, green: 241/255, blue: 227/255)
 
-    /// Dark cream - for text on light backgrounds
-    static let creamDark = Color(red: 230/255, green: 210/255, blue: 190/255)
-
-    /// Background coral - the main app background color
+/// Background coral - the main app background color
     static let backgroundCoral = Color(red: 255/255, green: 147/255, blue: 127/255)
+
+    // MARK: - Surface Colors
+
+    /// Main card/content background — white, provides contrast on cream
+    static let surfacePrimary = Color(NSColor.windowBackgroundColor)
+
+    /// View/sheet backgrounds — warm cream (matches onboarding)
+    static let surfaceSecondary = cream
+
+    /// Toolbar/header tints
+    static let subtleBackground = Color.secondary.opacity(0.05)
+
+    /// Badge/pill backgrounds
+    static let subtleFill = Color.secondary.opacity(0.1)
+
+    /// Card/editor borders — warm coral tint instead of cold gray
+    static let subtleBorder = coral.opacity(0.15)
+
+    /// Divider color
+    static let divider = Color.gray.opacity(0.15)
+
+    /// Icon box background — colored icon containers (matches onboarding tour)
+    static func iconBoxFill(_ color: Color) -> Color {
+        color.opacity(0.12)
+    }
 
     // MARK: - Semantic Colors
 
@@ -55,20 +77,6 @@ struct SpongeTheme {
         endPoint: .bottomTrailing
     )
 
-    /// Background gradient - subtle coral variation
-    static let backgroundGradient = LinearGradient(
-        colors: [backgroundCoral.opacity(0.3), coralPale.opacity(0.5)],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
-    /// Card gradient - cream to pale coral
-    static let cardGradient = LinearGradient(
-        colors: [cream, coralPale],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
     // MARK: - Spacing
 
     static let spacingXS: CGFloat = 4
@@ -78,6 +86,9 @@ struct SpongeTheme {
     static let spacingXL: CGFloat = 32
 
     // MARK: - Corner Radius
+
+    /// Extra small corner radius - for pills and small badges
+    static let cornerRadiusXS: CGFloat = 6
 
     /// Small corner radius - for buttons and small cards
     static let cornerRadiusS: CGFloat = 8
@@ -91,6 +102,17 @@ struct SpongeTheme {
     /// Extra large corner radius - for hero elements
     static let cornerRadiusXL: CGFloat = 28
 
+    // MARK: - Control Sizes
+
+    /// Small inline buttons
+    static let controlSizeS: CGFloat = 28
+
+    /// Standard action buttons
+    static let controlSizeM: CGFloat = 32
+
+    /// Primary touch targets
+    static let controlSizeL: CGFloat = 44
+
     // MARK: - Shadows
 
     /// Subtle shadow for cards
@@ -103,43 +125,27 @@ struct SpongeTheme {
     static let shadowL = Color.black.opacity(0.2)
 }
 
-// MARK: - View Extensions
+// MARK: - Color Extensions
 
-extension View {
-    /// Applies the primary Sponge button style
-    func spongeButtonStyle() -> some View {
-        self
-            .padding(.horizontal, SpongeTheme.spacingL)
-            .padding(.vertical, SpongeTheme.spacingM)
-            .background(SpongeTheme.primaryGradient)
-            .foregroundColor(.white)
-            .cornerRadius(SpongeTheme.cornerRadiusM)
-            .shadow(color: SpongeTheme.shadowM, radius: 4, x: 0, y: 2)
+extension Color {
+    static var primaryBackground: Color {
+        Color(NSColor.windowBackgroundColor)
     }
 
-    /// Applies the secondary Sponge button style
-    func spongeSecondaryButtonStyle() -> some View {
-        self
-            .padding(.horizontal, SpongeTheme.spacingL)
-            .padding(.vertical, SpongeTheme.spacingM)
-            .background(SpongeTheme.cream)
-            .foregroundColor(SpongeTheme.coral)
-            .cornerRadius(SpongeTheme.cornerRadiusM)
-            .shadow(color: SpongeTheme.shadowS, radius: 2, x: 0, y: 1)
+    static var secondaryBackground: Color {
+        Color(NSColor.controlBackgroundColor)
     }
 
-    /// Applies the Sponge card style
-    func spongeCardStyle() -> some View {
-        self
-            .background(SpongeTheme.cream)
-            .cornerRadius(SpongeTheme.cornerRadiusL)
-            .shadow(color: SpongeTheme.shadowM, radius: 8, x: 0, y: 4)
+    static var tertiaryBackground: Color {
+        Color(NSColor.textBackgroundColor)
     }
 
-    /// Applies the Sponge background gradient
-    func spongeBackground() -> some View {
-        self
-            .background(SpongeTheme.backgroundGradient.ignoresSafeArea())
+    static var secondarySystemBackground: Color {
+        Color(NSColor.controlBackgroundColor)
+    }
+
+    static var toastBackground: Color {
+        Color(NSColor.windowBackgroundColor)
     }
 }
 

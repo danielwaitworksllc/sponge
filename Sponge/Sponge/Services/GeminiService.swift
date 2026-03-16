@@ -7,6 +7,31 @@
 
 import Foundation
 
+/// Available Gemini models on the free tier
+enum GeminiModel: String, CaseIterable, Identifiable {
+    case flash = "gemini-2.5-flash"
+    case flashLite = "gemini-2.5-flash-lite"
+    case pro = "gemini-2.5-pro"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .flash: return "Gemini 2.5 Flash"
+        case .flashLite: return "Gemini 2.5 Flash-Lite"
+        case .pro: return "Gemini 2.5 Pro"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .flash: return "Balanced — 250 req/day free"
+        case .flashLite: return "Fastest — 1,000 req/day free"
+        case .pro: return "Most capable — 100 req/day free"
+        }
+    }
+}
+
 class GeminiService {
 
     static let shared = GeminiService()

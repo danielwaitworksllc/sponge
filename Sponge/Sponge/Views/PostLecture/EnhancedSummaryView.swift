@@ -269,8 +269,11 @@ private struct SummaryCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
-                .fill(Color.primaryBackground)
-                .shadow(color: SpongeTheme.shadowS, radius: 4, x: 0, y: 2)
+                .fill(SpongeTheme.surfacePrimary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                .stroke(SpongeTheme.subtleBorder, lineWidth: 1)
         )
     }
 }
@@ -286,26 +289,13 @@ private struct MarkerSummaryBadge: View {
             Text("\(count) \(type.displayName.lowercased()) marker\(count == 1 ? "" : "s")")
                 .font(.caption)
         }
-        .foregroundColor(badgeColor)
+        .foregroundColor(type.swiftUIColor)
         .padding(.horizontal, SpongeTheme.spacingS)
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(badgeColor.opacity(0.1))
+                .fill(type.swiftUIColor.opacity(0.1))
         )
-    }
-
-    private var badgeColor: Color {
-        switch type {
-        case .confused:
-            return .orange
-        case .important:
-            return .red
-        case .examRelevant:
-            return .yellow
-        case .reviewLater:
-            return .blue
-        }
     }
 }
 

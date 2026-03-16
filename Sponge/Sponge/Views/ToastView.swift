@@ -51,12 +51,12 @@ struct ToastView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.toastBackground)
-                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
+                .fill(SpongeTheme.surfacePrimary)
+                .shadow(color: SpongeTheme.shadowM, radius: 10, x: 0, y: 5)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: SpongeTheme.cornerRadiusM)
                 .stroke(toast.type.color.opacity(0.3), lineWidth: 1)
         )
         .padding(.horizontal, 20)
@@ -94,12 +94,6 @@ extension View {
     }
 }
 
-// Color extension for toast background
-extension Color {
-    static var toastBackground: Color {
-        Color(NSColor.windowBackgroundColor)
-    }
-}
 
 #Preview {
     VStack {

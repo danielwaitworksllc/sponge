@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// Types of intent markers that students can add during recording
 enum IntentMarkerType: String, Codable, CaseIterable, Identifiable {
@@ -58,6 +59,19 @@ enum IntentMarkerType: String, Codable, CaseIterable, Identifiable {
             return "yellow"
         case .reviewLater:
             return "blue"
+        }
+    }
+
+    var swiftUIColor: Color {
+        switch self {
+        case .confused:
+            return .orange
+        case .important:
+            return .red
+        case .examRelevant:
+            return .yellow
+        case .reviewLater:
+            return .blue
         }
     }
 }
